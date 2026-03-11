@@ -2,7 +2,6 @@ package com.example.resourceservice.controller;
 
 import com.example.resourceservice.dto.DeletedIdsResponse;
 import com.example.resourceservice.dto.ResourceIdResponse;
-import com.example.resourceservice.exception.InvalidRequestException;
 import com.example.resourceservice.service.ResourceService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

@@ -57,6 +57,24 @@ public class ResourceService {
         if (csvIds == null || csvIds.isBlank()) {
             throw new InvalidRequestException("CSV string is empty or null");
         }
+        List<Long> parsedIds = getIds(csvIds);
+
+        List<Long> deletedIds = new ArrayList<>();
+        for (Long id : parsedIds) {
+            if (resourceRepository.existsById(id)) {
+                resourceRepository.deleteById(id);
+                deletedIds.add(id);
+            }
+        }
+
+        if (!deletedIds.isEmpty()) {
+            songServiceClient.deleteSongMetadata(deletedIds);
+        }
+
+        return deletedIds;
+    }
+
+    private static List<Long> getIds(String csvIds) {
         if (csvIds.length() > 200) {
             throw new InvalidRequestException("CSV string is too long: received " + csvIds.length() + " characters, maximum allowed is 200");
         }
@@ -72,20 +90,7 @@ public class ResourceService {
                 throw new InvalidRequestException("Invalid ID format: '" + trimmed + "'. Only positive integers are allowed");
             }
         }
-
-        List<Long> deletedIds = new ArrayList<>();
-        for (Long id : parsedIds) {
-            if (resourceRepository.existsById(id)) {
-                resourceRepository.deleteById(id);
-                deletedIds.add(id);
-            }
-        }
-
-        if (!deletedIds.isEmpty()) {
-            songServiceClient.deleteSongMetadata(deletedIds);
-        }
-
-        return deletedIds;
+        return parsedIds;
     }
 
     private void validateId(Long id) {
