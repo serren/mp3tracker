@@ -20,6 +20,7 @@ import java.util.List;
 @Service
 public class ResourceService {
 
+    private static final String AUDIO_MPEG_CONTENT_TYPE = "audio/mpeg";
     private final ResourceRepository resourceRepository;
     private final SongServiceClient songServiceClient;
 
@@ -29,7 +30,11 @@ public class ResourceService {
     }
 
     @Transactional
-    public Long uploadResource(byte[] data) {
+    public Long uploadResource(String contentType, byte[] data) {
+        if (contentType == null || !contentType.startsWith(AUDIO_MPEG_CONTENT_TYPE)) {
+            String declared = contentType != null ? contentType : "unknown";
+            throw new InvalidRequestException("Invalid file format: " + declared + ". Only MP3 files are allowed");
+        }
         Resource resource = new Resource();
         resource.setData(data);
         Resource saved = resourceRepository.save(resource);

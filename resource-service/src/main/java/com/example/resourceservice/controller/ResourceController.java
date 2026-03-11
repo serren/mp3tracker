@@ -14,8 +14,6 @@ import java.util.List;
 @RequestMapping("/resources")
 public class ResourceController {
 
-    private static final String AUDIO_MPEG_CONTENT_TYPE = "audio/mpeg";
-
     private final ResourceService resourceService;
 
     public ResourceController(ResourceService resourceService) {
@@ -26,11 +24,7 @@ public class ResourceController {
     public ResponseEntity<ResourceIdResponse> uploadResource(
             @RequestHeader("Content-Type") String contentType,
             @RequestBody byte[] data) {
-        if (contentType == null || !contentType.startsWith(AUDIO_MPEG_CONTENT_TYPE)) {
-            String declared = contentType != null ? contentType : "unknown";
-            throw new InvalidRequestException("Invalid file format: " + declared + ". Only MP3 files are allowed");
-        }
-        Long id = resourceService.uploadResource(data);
+        Long id = resourceService.uploadResource(contentType, data);
         return ResponseEntity.ok(new ResourceIdResponse(id));
     }
 
