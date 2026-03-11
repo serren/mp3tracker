@@ -24,7 +24,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        String message = "Invalid value for parameter '" + ex.getName() + "': must be a positive integer";
+        String value = ex.getValue() != null ? ex.getValue().toString() : "null";
+        String message = "Invalid value '" + value + "' for ID. Must be a positive integer";
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(message, "400"));
     }

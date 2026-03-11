@@ -20,8 +20,6 @@ import java.util.List;
 @Service
 public class ResourceService {
 
-    private static final String AUDIO_MPEG_CONTENT_TYPE = "audio/mpeg";
-
     private final ResourceRepository resourceRepository;
     private final SongServiceClient songServiceClient;
 
@@ -32,8 +30,6 @@ public class ResourceService {
 
     @Transactional
     public Long uploadResource(byte[] data) {
-        validateMp3(data);
-
         Resource resource = new Resource();
         resource.setData(data);
         Resource saved = resourceRepository.save(resource);
@@ -56,8 +52,8 @@ public class ResourceService {
         if (csvIds == null || csvIds.isBlank()) {
             throw new InvalidRequestException("CSV string is empty or null");
         }
-        if (csvIds.length() >= 200) {
-            throw new InvalidRequestException("CSV string length must be less than 200 characters");
+        if (csvIds.length() > 200) {
+            throw new InvalidRequestException("CSV string is too long: received " + csvIds.length() + " characters, maximum allowed is 200");
         }
 
         String[] parts = csvIds.split(",");
@@ -68,7 +64,7 @@ public class ResourceService {
                 long id = Long.parseLong(trimmed);
                 parsedIds.add(id);
             } catch (NumberFormatException e) {
-                throw new InvalidRequestException("Invalid ID in CSV: '" + trimmed + "'");
+                throw new InvalidRequestException("Invalid ID format: '" + trimmed + "'. Only positive integers are allowed");
             }
         }
 
@@ -89,26 +85,7 @@ public class ResourceService {
 
     private void validateId(Long id) {
         if (id == null || id <= 0) {
-            throw new InvalidRequestException("ID must be a positive integer");
-        }
-    }
-
-    private void validateMp3(byte[] data) {
-        try {
-            AutoDetectParser parser = new AutoDetectParser();
-            BodyContentHandler handler = new BodyContentHandler(-1);
-            Metadata metadata = new Metadata();
-            ParseContext context = new ParseContext();
-            parser.parse(new ByteArrayInputStream(data), handler, metadata, context);
-
-            String contentType = metadata.get("Content-Type");
-            if (contentType == null || !contentType.startsWith(AUDIO_MPEG_CONTENT_TYPE)) {
-                throw new InvalidRequestException("The uploaded file is not a valid MP3");
-            }
-        } catch (InvalidRequestException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new InvalidRequestException("Failed to validate MP3 file: " + e.getMessage());
+            throw new InvalidRequestException("Invalid value '" + id + "' for ID. Must be a positive integer");
         }
     }
 

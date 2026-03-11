@@ -16,16 +16,16 @@ public class SongRequest {
     @NotNull(message = "ID is required")
     private Long id;
 
-    @NotBlank(message = "Name is required")
-    @Size(min = 1, max = 100, message = "Name must be between 1 and 100 characters")
+    @NotNull(message = "Song name is required")
+    @Size(min = 1, max = 100, message = "Song name must be between 1 and 100 characters")
     private String name;
 
-    @NotBlank(message = "Artist is required")
-    @Size(min = 1, max = 100, message = "Artist must be between 1 and 100 characters")
+    @NotNull(message = "Artist name is required")
+    @Size(min = 1, max = 100, message = "Artist name must be between 1 and 100 characters")
     private String artist;
 
-    @NotBlank(message = "Album is required")
-    @Size(min = 1, max = 100, message = "Album must be between 1 and 100 characters")
+    @NotNull(message = "Album name is required")
+    @Size(min = 1, max = 100, message = "Album name must be between 1 and 100 characters")
     private String album;
 
     @NotBlank(message = "Duration is required")

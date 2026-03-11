@@ -40,12 +40,13 @@ public class GlobalExceptionHandler {
             details.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("Validation failed", details, "400"));
+                .body(new ErrorResponse("Validation error", details, "400"));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        String message = "Invalid value for parameter '" + ex.getName() + "': must be a positive integer";
+        String value = ex.getValue() != null ? ex.getValue().toString() : "null";
+        String message = "Invalid value '" + value + "' for ID. Must be a positive integer";
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(message, "400"));
     }

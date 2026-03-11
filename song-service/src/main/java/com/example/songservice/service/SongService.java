@@ -52,8 +52,8 @@ public class SongService {
         if (csvIds == null || csvIds.isBlank()) {
             throw new InvalidRequestException("CSV string is empty or null");
         }
-        if (csvIds.length() >= 200) {
-            throw new InvalidRequestException("CSV string length must be less than 200 characters");
+        if (csvIds.length() > 200) {
+            throw new InvalidRequestException("CSV string is too long: received " + csvIds.length() + " characters, maximum allowed is 200");
         }
 
         String[] parts = csvIds.split(",");
@@ -64,7 +64,7 @@ public class SongService {
                 long id = Long.parseLong(trimmed);
                 parsedIds.add(id);
             } catch (NumberFormatException e) {
-                throw new InvalidRequestException("Invalid ID in CSV: '" + trimmed + "'");
+                throw new InvalidRequestException("Invalid ID format: '" + trimmed + "'. Only positive integers are allowed");
             }
         }
 
@@ -80,7 +80,7 @@ public class SongService {
 
     private void validateId(Long id) {
         if (id == null || id <= 0) {
-            throw new InvalidRequestException("ID must be a positive integer");
+            throw new InvalidRequestException("Invalid value '" + id + "' for ID. Must be a positive integer");
         }
     }
 
