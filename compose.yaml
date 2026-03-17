@@ -4,19 +4,82 @@ services:
     container_name: resource-db
     environment:
       POSTGRES_DB: resource_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${RESOURCE_DB_USER}
+      POSTGRES_PASSWORD: ${RESOURCE_DB_PASSWORD}
     ports:
       - "5442:5432"
     restart: unless-stopped
+    volumes:
+      - ./init-scripts/resource-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${RESOURCE_DB_USER} -d resource_db" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   song-db:
     image: postgres:16-alpine
     container_name: song-db
     environment:
       POSTGRES_DB: song_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${SONG_DB_USER}
+      POSTGRES_PASSWORD: ${SONG_DB_PASSWORD}
     ports:
       - "5443:5432"
     restart: unless-stopped
+    volumes:
+      - ./init-scripts/song-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${SONG_DB_USER} -d song_db" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  resource-service:
+    build: ./resource-service
+    image: resource-service
+    container_name: resource-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: ${RESOURCE_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${RESOURCE_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${RESOURCE_DB_PASSWORD}
+      SONG_SERVICE_URL: ${SONG_SERVICE_URL}
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      resource-db:
+        condition: service_healthy
+
+  song-service:
+    build: ./song-service
+    image: song-service
+    container_name: song-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: ${SONG_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${SONG_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${SONG_DB_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      song-db:
+        condition: service_healthy

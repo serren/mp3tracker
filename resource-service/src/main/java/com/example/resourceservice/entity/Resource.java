@@ -17,6 +17,5 @@ public class Resource {
     private Long id;
 
     @Column(name = "data", nullable = false)
-    @Lob
     private byte[] data;
 }

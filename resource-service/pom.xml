@@ -77,6 +77,12 @@
             <version>${tika.version}</version>
         </dependency>
 
+        <!-- Actuator (health endpoint for Docker healthcheck) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
