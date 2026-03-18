@@ -37,7 +37,6 @@ services:
 
   resource-service:
     build: ./resource-service
-    image: resource-service
     container_name: resource-service
     ports:
       - "8081:8081"
@@ -62,7 +61,6 @@ services:
 
   song-service:
     build: ./song-service
-    image: song-service
     container_name: song-service
     ports:
       - "8082:8082"
