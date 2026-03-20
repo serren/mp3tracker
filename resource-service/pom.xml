@@ -26,6 +26,7 @@
         <logback.version>1.5.25</logback.version>
         <spring-framework.version>6.2.11</spring-framework.version>
         <tomcat.version>10.1.52</tomcat.version>
+        <apache.maven.plugin.version>3.11.0</apache.maven.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -123,6 +124,22 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${apache.maven.plugin.version}</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>
