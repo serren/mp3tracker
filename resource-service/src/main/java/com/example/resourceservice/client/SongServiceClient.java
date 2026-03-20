@@ -1,27 +1,29 @@
 package com.example.resourceservice.client;
 
 import com.example.resourceservice.dto.SongMetadataRequest;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class SongServiceClient {
 
     private final RestClient restClient;
+    private final DiscoveryClient discoveryClient;
 
-    public SongServiceClient(@Value("${song-service.url}") String songServiceUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(songServiceUrl)
-                .build();
+    public SongServiceClient(DiscoveryClient discoveryClient) {
+        this.restClient = RestClient.builder().build();
+        this.discoveryClient = discoveryClient;
     }
 
     public void saveSongMetadata(SongMetadataRequest request) {
         restClient.post()
-                .uri("/songs")
+                .uri(resolveBaseUri() + "/songs")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
@@ -31,10 +33,18 @@ public class SongServiceClient {
     public void deleteSongMetadata(List<Long> ids) {
         String csv = ids.stream()
                 .map(String::valueOf)
-                .collect(java.util.stream.Collectors.joining(","));
+                .collect(Collectors.joining(","));
         restClient.delete()
-                .uri("/songs?id={ids}", csv)
+                .uri(resolveBaseUri() + "/songs?id={ids}", csv)
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    private String resolveBaseUri() {
+        List<ServiceInstance> instances = discoveryClient.getInstances("song-service");
+        if (instances.isEmpty()) {
+            throw new IllegalStateException("No instances of song-service registered in Eureka");
+        }
+        return instances.get(0).getUri().toString();
     }
 }

@@ -35,5 +35,3 @@ eureka:
   instance:
     lease-renewal-interval-in-seconds: 5
 
-song-service:
-  url: ${SONG_SERVICE_URL:http://localhost:8082}
