@@ -2,5 +2,10 @@ spring:
   datasource:
     url: jdbc:postgresql://resource-db:5432/resource_db
 
+eureka:
+  client:
+    service-url:
+      defaultZone: http://service-registry:8761/eureka/
+
 song-service:
   url: http://song-service:8082

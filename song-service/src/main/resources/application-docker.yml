@@ -1,3 +1,8 @@
 spring:
   datasource:
     url: jdbc:postgresql://song-db:5432/song_db
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://service-registry:8761/eureka/
