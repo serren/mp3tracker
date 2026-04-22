@@ -162,13 +162,28 @@ All services return a consistent error shape:
 }
 ```
 
-Validation errors include a `details` field with per-field messages:
+Validation errors (song-service `POST /songs`) include a `details` field with per-field messages.
+
+Request with invalid `duration` and `year`:
+```bash
+curl -X POST http://localhost:8082/songs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": 102,
+    "name": "We are the champions",
+    "artist": "Queen",
+    "album": "News of the world",
+    "duration": "02:77",
+    "year": "01977"
+  }'
+```
+Response `400`:
 ```json
 {
-  "errorMessage": "Validation failed",
+  "errorMessage": "Validation error",
   "details": {
-    "duration": "must match \"^\\d{2}:[0-5]\\d$\"",
-    "year": "must match \"^(19|20)\\d{2}$\""
+    "duration": "Duration must be in mm:ss format with leading zeros",
+    "year": "Year must be between 1900 and 2099"
   },
   "errorCode": "400"
 }
