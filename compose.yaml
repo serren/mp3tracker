@@ -97,6 +97,26 @@ services:
       localstack:
         condition: service_healthy
 
+  resource-processor:
+    build: ./resource-processor
+    ports:
+      - "8084:8084"
+    environment:
+      EUREKA_SERVER_URL: http://service-registry:8761/eureka/
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      service-registry:
+        condition: service_healthy
+
   song-service:
     build: ./song-service
     ports:
