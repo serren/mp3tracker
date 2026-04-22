@@ -1,4 +1,21 @@
 services:
+  localstack:
+    image: localstack/localstack:3
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      AWS_DEFAULT_REGION: us-east-1
+    volumes:
+      - ./init-scripts/localstack:/etc/localstack/init/ready.d
+    healthcheck:
+      test: [ "CMD-SHELL", "awslocal s3 ls || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
   resource-db:
     image: postgres:16-alpine
     container_name: resource-db
@@ -60,6 +77,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${RESOURCE_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${RESOURCE_DB_PASSWORD}
       EUREKA_SERVER_URL: http://service-registry:8761/eureka/
+      AWS_S3_ENDPOINT: http://localstack:4566
+      AWS_S3_BUCKET_NAME: mp3-resources
     deploy:
       resources:
         limits:
@@ -74,6 +93,8 @@ services:
       resource-db:
         condition: service_healthy
       service-registry:
+        condition: service_healthy
+      localstack:
         condition: service_healthy
 
   song-service:

@@ -276,7 +276,7 @@ DELETE /songs?id=1,2
 
 - Add a global exception handler using `@RestControllerAdvice`.
 - Map exceptions to appropriate HTTP status codes.
-- Provide meaningful error messages and error codes in responses using a unified structure (see the [API response specification](./api-tests/api-response-specification.md) for detailed response formats):
+- Provide meaningful error messages and error codes in responses using a unified structure (see the [API response specification](../api-tests/api-response-specification.md) for detailed response formats):
 
 #### Simple error response
 
@@ -362,14 +362,14 @@ Issues:
 - [PostgreSQL](https://hub.docker.com/_/postgres) 16+ is required as the database engine, preferably Alpine-based.
 - Each service should have its own dedicated database instance.
 - A single Docker Compose file located in the root directory of the project must be used to start both database containers.
-- For this module, you can use the [provided compose.yaml](./docker-compose-file/compose.yaml) file in your project.
+- For this module, you can use the [provided compose.yaml](../docker-compose-file/compose.yaml) file in your project.
 - The use of migration tools such as Flyway or Liquibase is not allowed.
 - Database schema initialization must be fully automated using Hibernate.
 - In this module, Hibernate’s `ddl-auto=update` must be used for schema management to simplify development.
 - In this module, SQL initialization scripts (e.g., `schema.sql`, `data.sql`) must not be used.
 
 
-<img src="images/microservice_architecture_overview.png" width="351" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="../images/microservice_architecture_overview.png" width="351" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 ---
 
@@ -424,34 +424,34 @@ gradle-project/
 
 ### Postman collection and sample MP3 file for testing
 
-Please use the [Postman collection](./api-tests/introduction_to_microservices.postman_collection.json) and a [sample MP3 file](./sample-mp3-file/mp3.zip) with the necessary tags for testing the Resource Service and Song Service APIs. This collection will help validate the correct functioning of all features and data validations. Ensure that the test results are compared against the [API response specification](./api-tests/api-response-specification.md) to verify compliance with the expected responses.
+Please use the [Postman collection](../api-tests/introduction_to_microservices.postman_collection.json) and a [sample MP3 file](../sample-mp3-file/mp3.zip) with the necessary tags for testing the Resource Service and Song Service APIs. This collection will help validate the correct functioning of all features and data validations. Ensure that the test results are compared against the [API response specification](../api-tests/api-response-specification.md) to verify compliance with the expected responses.
 
 1. In the **Variables** tab of the collection, set the variables `resource_service_url` and `song_service_url` with your ports. Click **Save** to apply.
 
-<img src="images/postman_01.png" width="1689" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="../images/postman_01.png" width="1689" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 ---
 
 2.Send the requests. Ensure you receive the correct responses.
 
-<img src="images/postman_02.png" width="1689" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="../images/postman_02.png" width="1689" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 ---
 
 3. In the **Test Results** tab, verify that all tests for the requests have passed.
 
-<img src="images/postman_03.png" width="1689" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="../images/postman_03.png" width="1689" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 ---
 
 4. If any tests failed, make necessary adjustments to your code to ensure the API functions as expected, without changing anything in the Postman collection itself.
 
-<img src="images/postman_04.png" width="1689" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="../images/postman_04.png" width="1689" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 Ensure that your services handle **all** requests accurately and comply with the API specifications outlined in the documentation.
 
 > **IMPORTANT!** 
-> - Take screenshots confirming the successful completion of **all** API tests using provided [sample MP3 file](./sample-mp3-file/mp3.zip).
+> - Take screenshots confirming the successful completion of **all** API tests using provided [sample MP3 file](../sample-mp3-file/mp3.zip).
 > - Compile screenshots into a **SINGLE PDF or DOCX file**, and place this file in the personal folder provided to you by Avalia.
 > - Ensure the response body and test results are visible, as shown in the example below:
 > <img src="images/postman_05.png" width="1000" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
@@ -468,7 +468,7 @@ In the folder you access through the link provided by Avalia Kicker bot, add a l
 - Paste the URL of the public Git repository with your solution.
 - Save the link. The new link will now appear in the folder.
 
-<img src="images/link_creation.png" width="500" style="border: 1px solid #ccc; margin: 20px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="../images/link_creation.png" width="700" style="border: 1px solid #ccc; margin: 20px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 ---
 
@@ -498,7 +498,7 @@ Before submitting your task, please ensure that you have completed all the requi
 - [ ] Used Hibernate’s `ddl-auto=update` for schema management in this module.
 - [ ] Did not use migration tools such as Flyway or Liquibase.
 - [ ] Did not use SQL initialization scripts (e.g., `schema.sql`, `data.sql`) in this module.
-- [ ] Deployed databases in Docker containers using the [provided Docker Compose file](./docker-compose-file/compose.yaml) (`compose.yaml`).
+- [ ] Deployed databases in Docker containers using the [provided Docker Compose file](../docker-compose-file/compose.yaml) (`compose.yaml`).
 - [ ] The Docker Compose file is located in the root directory and correctly starts both databases.
 - [ ] No Dockerfiles are present, as services must run locally (not in Docker).
 
@@ -510,8 +510,8 @@ Before submitting your task, please ensure that you have completed all the requi
 - [ ] Ready to place the link to your repository in the personal folder in Avalia.
 
 ✅ **API testing**
-- [ ] Ran Postman tests using the provided [collection](./api-tests/introduction_to_microservices.postman_collection.json) and [sample MP3 file](./sample-mp3-file/mp3.zip).
+- [ ] Ran Postman tests using the provided [collection](../api-tests/introduction_to_microservices.postman_collection.json) and [sample MP3 file](../sample-mp3-file/mp3.zip).
 - [ ] Verified that all API tests pass.
-- [ ] Checked that all API responses conform to the [API response specification](./api-tests/api-response-specification.md).
+- [ ] Checked that all API responses conform to the [API response specification](../api-tests/api-response-specification.md).
 - [ ] Took screenshots of test results and compiled them into a single PDF or DOCX file.
 - [ ] Ready to place the test result PDF or DOCX file in the personal folder in Avalia.
