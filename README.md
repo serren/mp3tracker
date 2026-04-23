@@ -74,6 +74,25 @@ Expected response for each:
 
 Open http://localhost:8761 in a browser — `RESOURCE-SERVICE`, `SONG-SERVICE`, and `RESOURCE-PROCESSOR` should appear in the list of registered instances.
 
+## Inspecting LocalStack S3 data
+
+**List objects in the bucket (via Docker):**
+```bash
+docker exec localstack awslocal s3 ls s3://mp3-resources
+```
+
+**List with size and date:**
+```bash
+docker exec localstack awslocal s3 ls s3://mp3-resources --human-readable
+```
+
+**Browse via browser (XML listing):**
+```
+http://localhost:4566/mp3-resources
+```
+
+---
+
 ## REST API examples
 
 ### resource-service
@@ -146,6 +165,7 @@ Response:
 curl -X DELETE "http://localhost:8082/songs?id=1,2"
 ```
 Response:
+
 ```json
 {"ids": [1, 2]}
 ```
