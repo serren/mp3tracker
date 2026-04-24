@@ -24,21 +24,25 @@ public class S3StorageService {
     }
 
     public String upload(byte[] data) {
-        String key = UUID.randomUUID().toString();
+        String key = UUID.randomUUID().toString() + ".mp3";
         s3Client.putObject(
                 PutObjectRequest.builder().bucket(bucketName).key(key).build(),
                 RequestBody.fromBytes(data));
-        return key;
+        return "s3://" + bucketName + "/" + key;
     }
 
-    public byte[] download(String key) {
+    public byte[] download(String s3Uri) {
         ResponseBytes<GetObjectResponse> response = s3Client.getObjectAsBytes(
-                GetObjectRequest.builder().bucket(bucketName).key(key).build());
+                GetObjectRequest.builder().bucket(bucketName).key(extractKey(s3Uri)).build());
         return response.asByteArray();
     }
 
-    public void delete(String key) {
+    public void delete(String s3Uri) {
         s3Client.deleteObject(
-                DeleteObjectRequest.builder().bucket(bucketName).key(key).build());
+                DeleteObjectRequest.builder().bucket(bucketName).key(extractKey(s3Uri)).build());
+    }
+
+    private String extractKey(String s3Uri) {
+        return s3Uri.substring(s3Uri.lastIndexOf('/') + 1);
     }
 }
