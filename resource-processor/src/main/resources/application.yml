@@ -3,7 +3,7 @@ spring:
     name: resource-processor
 
 server:
-  port: 8084
+  port: 8080
 
 management:
   endpoints:

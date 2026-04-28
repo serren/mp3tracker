@@ -20,6 +20,6 @@ WORKDIR /app
 # Wildcard avoids hardcoding the artifact version from pom.xml
 COPY --from=build /app/target/*.jar app.jar
 
-EXPOSE 8082
+EXPOSE 8080
 
 CMD ["java", "-jar", "app.jar"]
