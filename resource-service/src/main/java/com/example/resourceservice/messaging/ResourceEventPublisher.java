@@ -2,6 +2,7 @@ package com.example.resourceservice.messaging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,10 @@ public class ResourceEventPublisher {
 
     public void publish(Long resourceId) {
         ResourceUploadedEvent event = new ResourceUploadedEvent(resourceId);
-        rabbitTemplate.convertAndSend(exchange, routingKey, event);
+        rabbitTemplate.convertAndSend(exchange, routingKey, event, message -> {
+            message.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+            return message;
+        });
         log.info("Published ResourceUploadedEvent for resourceId={}", resourceId);
     }
 }

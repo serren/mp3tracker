@@ -62,7 +62,7 @@ public class MetadataExtractorService {
 
     private String extractYear(String releaseDate) {
         if (releaseDate == null || releaseDate.length() < 4) {
-            return "0000";
+            return "2000";
         }
         return releaseDate.substring(0, 4);
     }
