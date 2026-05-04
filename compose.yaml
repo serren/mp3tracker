@@ -1,4 +1,17 @@
 services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   localstack:
     image: localstack/localstack:3
     container_name: localstack
@@ -79,6 +92,7 @@ services:
       EUREKA_SERVER_URL: http://service-registry:8761/eureka/
       AWS_S3_ENDPOINT: http://localstack:4566
       AWS_S3_BUCKET_NAME: mp3-resources
+      SPRING_RABBITMQ_HOST: rabbitmq
     deploy:
       resources:
         limits:
@@ -96,6 +110,8 @@ services:
         condition: service_healthy
       localstack:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   resource-processor:
     build: ./resource-processor
@@ -103,6 +119,7 @@ services:
       - "8084:8080"
     environment:
       EUREKA_SERVER_URL: http://service-registry:8761/eureka/
+      SPRING_RABBITMQ_HOST: rabbitmq
     deploy:
       resources:
         limits:
@@ -115,6 +132,8 @@ services:
       start_period: 30s
     depends_on:
       service-registry:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   song-service:

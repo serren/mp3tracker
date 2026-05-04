@@ -4,6 +4,7 @@ import com.example.resourceservice.client.SongServiceClient;
 import com.example.resourceservice.entity.Resource;
 import com.example.resourceservice.exception.InvalidRequestException;
 import com.example.resourceservice.exception.ResourceNotFoundException;
+import com.example.resourceservice.messaging.ResourceEventPublisher;
 import com.example.resourceservice.repository.ResourceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +19,16 @@ public class ResourceService {
     private final ResourceRepository resourceRepository;
     private final SongServiceClient songServiceClient;
     private final S3StorageService s3StorageService;
+    private final ResourceEventPublisher eventPublisher;
 
     public ResourceService(ResourceRepository resourceRepository,
                            SongServiceClient songServiceClient,
-                           S3StorageService s3StorageService) {
+                           S3StorageService s3StorageService,
+                           ResourceEventPublisher eventPublisher) {
         this.resourceRepository = resourceRepository;
         this.songServiceClient = songServiceClient;
         this.s3StorageService = s3StorageService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -36,7 +40,9 @@ public class ResourceService {
         String s3Key = s3StorageService.upload(data);
         Resource resource = new Resource();
         resource.setS3Key(s3Key);
-        return resourceRepository.save(resource).getId();
+        Long id = resourceRepository.save(resource).getId();
+        eventPublisher.publish(id);
+        return id;
     }
 
     public byte[] getResource(Long id) {
