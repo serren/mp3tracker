@@ -2,9 +2,12 @@ package com.example.resourceservice.messaging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -24,6 +27,15 @@ public class ResourceEventPublisher {
         this.routingKey = routingKey;
     }
 
+    @Retryable(
+            retryFor = {AmqpException.class},
+            maxAttemptsExpression = "#{${retry.max-attempts}}",
+            backoff = @Backoff(
+                    delayExpression = "#{${retry.initial-interval}}",
+                    multiplierExpression = "#{${retry.multiplier}}",
+                    maxDelayExpression = "#{${retry.max-delay}}"
+            )
+    )
     public void publish(Long resourceId) {
         ResourceUploadedEvent event = new ResourceUploadedEvent(resourceId);
         rabbitTemplate.convertAndSend(exchange, routingKey, event, message -> {

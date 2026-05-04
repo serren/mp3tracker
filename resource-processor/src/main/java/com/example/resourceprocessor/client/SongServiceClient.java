@@ -4,7 +4,11 @@ import com.example.resourceprocessor.dto.SongRequest;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.MediaType;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -20,6 +24,15 @@ public class SongServiceClient {
         this.discoveryClient = discoveryClient;
     }
 
+    @Retryable(
+            retryFor = {ResourceAccessException.class, HttpServerErrorException.class, IllegalStateException.class},
+            maxAttemptsExpression = "#{${retry.max-attempts}}",
+            backoff = @Backoff(
+                    delayExpression = "#{${retry.initial-interval}}",
+                    multiplierExpression = "#{${retry.multiplier}}",
+                    maxDelayExpression = "#{${retry.max-delay}}"
+            )
+    )
     public void saveSong(SongRequest request) {
         restClient.post()
                 .uri(resolveBaseUri() + "/songs")

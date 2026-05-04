@@ -45,6 +45,12 @@ rabbitmq:
   queue: resources.queue
   routing-key: resources.uploaded
 
+retry:
+  max-attempts: 3
+  initial-interval: 1000
+  multiplier: 2.0
+  max-delay: 10000
+
 aws:
   s3:
     endpoint: ${AWS_S3_ENDPOINT:http://localhost:4566}

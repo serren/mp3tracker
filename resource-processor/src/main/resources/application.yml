@@ -11,6 +11,14 @@ rabbitmq:
   exchange: resources.direct
   queue: resources.queue
   routing-key: resources.uploaded
+  dead-letter-exchange: resources.dlx
+  dead-letter-queue: resources.queue.dlq
+
+retry:
+  max-attempts: 3
+  initial-interval: 1000
+  multiplier: 2.0
+  max-delay: 10000
 
 server:
   port: 8080
