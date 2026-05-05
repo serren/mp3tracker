@@ -2,15 +2,20 @@ services:
   rabbitmq:
     image: rabbitmq:4-management
     container_name: rabbitmq
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "mp3tracker-secret-cookie"
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
       test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   localstack:
     image: localstack/localstack:3
@@ -79,7 +84,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   resource-service:
     build: ./resource-service
@@ -102,7 +107,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     depends_on:
       resource-db:
         condition: service_healthy
@@ -129,7 +134,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     depends_on:
       service-registry:
         condition: service_healthy
@@ -155,9 +160,12 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     depends_on:
       song-db:
         condition: service_healthy
       service-registry:
         condition: service_healthy
+
+volumes:
+  rabbitmq-data:
