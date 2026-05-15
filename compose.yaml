@@ -4,7 +4,7 @@ services:
     container_name: rabbitmq
     hostname: rabbitmq
     environment:
-      RABBITMQ_ERLANG_COOKIE: "mp3tracker-secret-cookie"
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -24,7 +24,7 @@ services:
       - "4566:4566"
     environment:
       SERVICES: s3
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
     volumes:
       - ./init-scripts/localstack:/etc/localstack/init/ready.d
     healthcheck:
@@ -35,10 +35,10 @@ services:
       start_period: 15s
 
   resource-db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: resource-db
     environment:
-      POSTGRES_DB: resource_db
+      POSTGRES_DB: ${RESOURCE_DB_NAME}
       POSTGRES_USER: ${RESOURCE_DB_USER}
       POSTGRES_PASSWORD: ${RESOURCE_DB_PASSWORD}
     ports:
@@ -47,16 +47,16 @@ services:
     volumes:
       - ./init-scripts/resource-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${RESOURCE_DB_USER} -d resource_db" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${RESOURCE_DB_USER} -d ${RESOURCE_DB_NAME}" ]
       interval: 10s
       timeout: 10s
       retries: 5
 
   song-db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: song-db
     environment:
-      POSTGRES_DB: song_db
+      POSTGRES_DB: ${SONG_DB_NAME}
       POSTGRES_USER: ${SONG_DB_USER}
       POSTGRES_PASSWORD: ${SONG_DB_PASSWORD}
     ports:
@@ -65,7 +65,7 @@ services:
     volumes:
       - ./init-scripts/song-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${SONG_DB_USER} -d song_db" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${SONG_DB_USER} -d ${SONG_DB_NAME}" ]
       interval: 10s
       timeout: 10s
       retries: 5
@@ -94,10 +94,10 @@ services:
       SPRING_DATASOURCE_URL: ${RESOURCE_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${RESOURCE_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${RESOURCE_DB_PASSWORD}
-      EUREKA_SERVER_URL: http://service-registry:8761/eureka/
-      AWS_S3_ENDPOINT: http://localstack:4566
-      AWS_S3_BUCKET_NAME: mp3-resources
-      SPRING_RABBITMQ_HOST: rabbitmq
+      EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME}
+      SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST}
     deploy:
       resources:
         limits:
@@ -123,8 +123,8 @@ services:
     ports:
       - "8084:8080"
     environment:
-      EUREKA_SERVER_URL: http://service-registry:8761/eureka/
-      SPRING_RABBITMQ_HOST: rabbitmq
+      EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
+      SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST}
     deploy:
       resources:
         limits:
@@ -149,7 +149,7 @@ services:
       SPRING_DATASOURCE_URL: ${SONG_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${SONG_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${SONG_DB_PASSWORD}
-      EUREKA_SERVER_URL: http://service-registry:8761/eureka/
+      EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
     deploy:
       resources:
         limits:
