@@ -15,7 +15,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
 
   localstack:
     image: localstack/localstack:3
@@ -32,7 +32,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 15s
+      start_period: 120s
 
   resource-db:
     image: postgres:17-alpine
@@ -84,7 +84,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
 
   resource-service:
     build: ./resource-service
@@ -107,7 +107,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     depends_on:
       resource-db:
         condition: service_healthy
@@ -134,7 +134,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     depends_on:
       service-registry:
         condition: service_healthy
@@ -160,7 +160,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     depends_on:
       song-db:
         condition: service_healthy
