@@ -16,6 +16,8 @@ import java.util.List;
 @Service
 public class SongService {
 
+    private static final Logger log = LoggerFactory.getLogger(SongService.class);
+
     private final SongRepository songRepository;
 
     public SongService(SongRepository songRepository) {
@@ -37,6 +39,11 @@ public class SongService {
         song.setYear(request.getYear());
 
         songRepository.save(song);
+
+        log.info("Song with ID=" + song.getId() + " created.");
+        if (log.isDebugEnabled()) {
+            log.debug("Song data: " + song.toString());
+        }
         return song.getId();
     }
 

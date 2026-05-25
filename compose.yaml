@@ -91,7 +91,7 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - ./config-repo:/config-repo
+      - ../mp3tracker-config:/config-repo
     environment:
       EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
     deploy:
@@ -150,6 +150,7 @@ services:
     environment:
       EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
       SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST}
+      CONFIG_SERVER_URL: http://config-server:8888
     deploy:
       resources:
         limits:
@@ -164,6 +165,8 @@ services:
       service-registry:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
 
   song-service:
