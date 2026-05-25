@@ -1,6 +1,8 @@
 spring:
   application:
     name: song-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5443/song_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
@@ -14,23 +16,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
-  endpoint:
-    health:
-      show-details: never
-
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: 5
-  instance:
-    lease-renewal-interval-in-seconds: 5
 
 server:
   port: 8080
