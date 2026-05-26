@@ -1,12 +1,13 @@
 spring:
   application:
     name: config-server
+  profiles:
+    active: native
   cloud:
     config:
       server:
-        git:
-          uri: file:///config-repo
-          default-label: main
+        native:
+          search-locations: file:///config-repo
 
 server:
   port: 8888
