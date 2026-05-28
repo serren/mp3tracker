@@ -3,6 +3,8 @@ spring:
     name: config-server
   profiles:
     active: native
+    group:
+      local: "native"
   cloud:
     config:
       server:
