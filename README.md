@@ -58,8 +58,9 @@ LocalStack      ──┤──► service-registry ──► config-server ─�
 
 ## Prerequisites
 
-- Docker
-- Docker Compose v2
+- Docker + Docker Compose v2
+- JDK 21 (for local run)
+- Maven 3.9+ (for local run)
 
 ## Running services
 
@@ -148,6 +149,40 @@ docker exec localstack awslocal s3 ls s3://mp3-resources --human-readable
 **Browse via browser (XML listing):**
 ```
 http://localhost:4566/mp3-resources
+```
+
+---
+
+## Running services locally (hybrid mode)
+
+Run all services on the host JVM while keeping only the infrastructure (DBs, RabbitMQ, LocalStack) in Docker. Each service has an `application-local.yml` with the correct port and settings for this mode.
+
+**Step 1 — start infra:**
+```bash
+docker compose up -d resource-db song-db rabbitmq localstack
+```
+
+**Step 2 — set the config-repo path** (forward slashes required on Windows):
+```bash
+export CONFIG_REPO_PATH=D:/Projects/mp3tracker-config
+```
+
+**Step 3 — start services in order** (each in its own terminal):
+```bash
+cd service-registry  && mvn spring-boot:run                                     # :8761
+cd config-server     && mvn spring-boot:run -Dspring-boot.run.profiles=local    # :8888
+cd resource-service  && mvn spring-boot:run -Dspring-boot.run.profiles=local    # :8081
+cd song-service      && mvn spring-boot:run -Dspring-boot.run.profiles=local    # :8082
+cd resource-processor && mvn spring-boot:run -Dspring-boot.run.profiles=local   # :8084
+cd api-gateway       && mvn spring-boot:run -Dspring-boot.run.profiles=local    # :8080
+```
+
+config-server must be healthy before starting the app services (resource-service, song-service, resource-processor).
+
+**Verify config-server is serving config:**
+```bash
+curl http://localhost:8888/resource-service/default
+# propertySources should be non-empty
 ```
 
 ---
@@ -318,6 +353,9 @@ curl -X POST http://localhost:8081/actuator/refresh
 | Message stuck in `resources.queue.dlq` | Processing failed after 3 retries | Inspect DLQ in RabbitMQ UI (http://localhost:15672); fix root cause; move message back to `resources.queue` |
 | `ddl-auto: none` — table missing | DB recreated but init SQL not run | `docker compose down -v && docker compose up -d --build` |
 | Config Server shows stale values | Git commit not made after editing config file | `git -C config-repo commit -am "..."` then call `/actuator/refresh` |
+| config-server `propertySources: []` (local run) | `CONFIG_REPO_PATH` not set or uses backslashes | `export CONFIG_REPO_PATH=D:/Projects/mp3tracker-config` (forward slashes) |
+| `Could not resolve placeholder 'rabbitmq.exchange'` (local run) | config-server not serving properties | Check `curl http://localhost:8888/resource-service/default`; fix `CONFIG_REPO_PATH` |
+| config-server fails: "Invalid config server configuration" | `local` profile replaced `native` profile | Ensure `spring.profiles.group.local: "native"` in `config-server/application.yml` |
 | `No instances of X registered in Eureka` | Service not yet registered | Wait; `@Retryable` handles this automatically |
 | Port conflict on 8080 | Another process uses the API Gateway port | Stop conflicting process or change port in `compose.yaml` |
 | Build fails: Java version | Wrong JDK active | Ensure JDK 21: `java -version` |
