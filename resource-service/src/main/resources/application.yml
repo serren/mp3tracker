@@ -1,6 +1,8 @@
 spring:
   application:
     name: resource-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: 5672
@@ -20,36 +22,13 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
-  endpoint:
-    health:
-      show-details: never
+rabbitmq:
+  exchange: ${RABBITMQ_EXCHANGE:resources.direct}
+  queue: ${RABBITMQ_QUEUE:resources.queue}
+  routing-key: ${RABBITMQ_ROUTING_KEY:resources.uploaded}
 
 server:
   port: 8080
-
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: 5
-  instance:
-    lease-renewal-interval-in-seconds: 5
-
-rabbitmq:
-  exchange: resources.direct
-  queue: resources.queue
-  routing-key: resources.uploaded
-
-retry:
-  max-attempts: 3
-  initial-interval: 1000
-  multiplier: 2.0
-  max-delay: 10000
 
 aws:
   s3:
@@ -58,4 +37,3 @@ aws:
     region: ${AWS_S3_REGION:us-east-1}
     access-key: ${AWS_ACCESS_KEY_ID:test}
     secret-key: ${AWS_SECRET_ACCESS_KEY:test}
-
