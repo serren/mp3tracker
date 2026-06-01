@@ -29,6 +29,8 @@ rabbitmq:
   exchange: resources.direct
   queue: resources.queue
   routing-key: resources.uploaded
+  processed-queue: resource.service.queue
+  processed-routing-key: resources.processed
 
 aws:
   s3:

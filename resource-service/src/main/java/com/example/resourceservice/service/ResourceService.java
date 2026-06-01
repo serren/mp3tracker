@@ -1,11 +1,15 @@
 package com.example.resourceservice.service;
 
 import com.example.resourceservice.client.SongServiceClient;
+import com.example.resourceservice.client.StorageServiceClient;
+import com.example.resourceservice.dto.StorageResponse;
 import com.example.resourceservice.entity.Resource;
 import com.example.resourceservice.exception.InvalidRequestException;
 import com.example.resourceservice.exception.ResourceNotFoundException;
 import com.example.resourceservice.messaging.ResourceEventPublisher;
 import com.example.resourceservice.repository.ResourceRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,20 +19,25 @@ import java.util.List;
 @Service
 public class ResourceService {
 
+    private static final Logger log = LoggerFactory.getLogger(ResourceService.class);
     private static final String AUDIO_MPEG_CONTENT_TYPE = "audio/mpeg";
+
     private final ResourceRepository resourceRepository;
     private final SongServiceClient songServiceClient;
     private final S3StorageService s3StorageService;
     private final ResourceEventPublisher eventPublisher;
+    private final StorageServiceClient storageServiceClient;
 
     public ResourceService(ResourceRepository resourceRepository,
                            SongServiceClient songServiceClient,
                            S3StorageService s3StorageService,
-                           ResourceEventPublisher eventPublisher) {
+                           ResourceEventPublisher eventPublisher,
+                           StorageServiceClient storageServiceClient) {
         this.resourceRepository = resourceRepository;
         this.songServiceClient = songServiceClient;
         this.s3StorageService = s3StorageService;
         this.eventPublisher = eventPublisher;
+        this.storageServiceClient = storageServiceClient;
     }
 
     @Transactional
@@ -37,9 +46,11 @@ public class ResourceService {
             String declared = contentType != null ? contentType : "unknown";
             throw new InvalidRequestException("Invalid file format: " + declared + ". Only MP3 files are allowed");
         }
-        String s3Key = s3StorageService.upload(data);
+        StorageResponse stagingStorage = findStorage("STAGING");
+        String s3Key = s3StorageService.upload(data, stagingStorage.getBucket());
         Resource resource = new Resource();
         resource.setS3Key(s3Key);
+        resource.setStorageType("STAGING");
         Long id = resourceRepository.save(resource).getId();
         eventPublisher.publish(id);
         return id;
@@ -73,6 +84,28 @@ public class ResourceService {
         }
 
         return deletedIds;
+    }
+
+    @Transactional
+    public void promoteResource(Long resourceId) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException(resourceId));
+        StorageResponse permanentStorage = findStorage("PERMANENT");
+        String oldKey = resource.getS3Key();
+        s3StorageService.copy(oldKey, permanentStorage.getBucket());
+        String keyFilename = oldKey.substring(oldKey.lastIndexOf('/') + 1);
+        resource.setS3Key("s3://" + permanentStorage.getBucket() + "/" + keyFilename);
+        resource.setStorageType("PERMANENT");
+        resourceRepository.save(resource);
+        s3StorageService.delete(oldKey);
+        log.info("Promoted resource id={} from STAGING to PERMANENT", resourceId);
+    }
+
+    private StorageResponse findStorage(String storageType) {
+        return storageServiceClient.getAllStorages().stream()
+                .filter(s -> storageType.equals(s.getStorageType()))
+                .findFirst()
+                .orElseThrow(() -> new InvalidRequestException(storageType + " storage not configured"));
     }
 
     private static List<Long> getIds(String csvIds) {

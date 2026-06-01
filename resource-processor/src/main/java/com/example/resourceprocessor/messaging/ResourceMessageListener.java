@@ -18,13 +18,16 @@ public class ResourceMessageListener {
     private final ResourceServiceClient resourceServiceClient;
     private final SongServiceClient songServiceClient;
     private final MetadataExtractorService metadataExtractorService;
+    private final ResourceEventPublisher eventPublisher;
 
     public ResourceMessageListener(ResourceServiceClient resourceServiceClient,
                                    SongServiceClient songServiceClient,
-                                   MetadataExtractorService metadataExtractorService) {
+                                   MetadataExtractorService metadataExtractorService,
+                                   ResourceEventPublisher eventPublisher) {
         this.resourceServiceClient = resourceServiceClient;
         this.songServiceClient = songServiceClient;
         this.metadataExtractorService = metadataExtractorService;
+        this.eventPublisher = eventPublisher;
     }
 
     @RabbitListener(queues = "${rabbitmq.queue}")
@@ -44,5 +47,7 @@ public class ResourceMessageListener {
         );
         songServiceClient.saveSong(request);
         log.info("Saved metadata for resourceId={}: name={}", resourceId, metadata.getName());
+
+        eventPublisher.publishProcessed(resourceId);
     }
 }
