@@ -32,6 +32,7 @@ public class StorageServiceClient {
         factory.setConnectTimeout(Duration.ofSeconds(5));
         factory.setReadTimeout(Duration.ofSeconds(5));
         this.restClient = RestClient.builder().requestFactory(factory).build();
+        this.restClient = RestClient.builder().build();
         this.discoveryClient = discoveryClient;
     }
 
