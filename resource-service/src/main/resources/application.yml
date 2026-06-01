@@ -26,6 +26,14 @@ rabbitmq:
   exchange: ${RABBITMQ_EXCHANGE:resources.direct}
   queue: ${RABBITMQ_QUEUE:resources.queue}
   routing-key: ${RABBITMQ_ROUTING_KEY:resources.uploaded}
+  processed-queue: ${RABBITMQ_PROCESSED_QUEUE:resource.service.queue}
+  processed-routing-key: ${RABBITMQ_PROCESSED_ROUTING_KEY:resources.processed}
+
+retry:
+  max-attempts: ${RETRY_MAX_ATTEMPTS:3}
+  initial-interval: ${RETRY_INITIAL_INTERVAL:1000}
+  multiplier: ${RETRY_MULTIPLIER:2.0}
+  max-delay: ${RETRY_MAX_DELAY:10000}
 
 server:
   port: 8080

@@ -1,4 +1,4 @@
-package com.example.resourceservice.entity;
+package com.example.storageservice.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -6,19 +6,22 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "resources")
+@Table(name = "storages")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Resource {
+public class Storage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "s3_key", nullable = false)
-    private String s3Key;
-
     @Column(name = "storage_type", nullable = false)
     private String storageType;
+
+    @Column(name = "bucket", nullable = false)
+    private String bucket;
+
+    @Column(name = "path", nullable = false)
+    private String path;
 }
