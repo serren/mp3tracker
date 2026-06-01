@@ -35,6 +35,18 @@ retry:
   multiplier: ${RETRY_MULTIPLIER:2.0}
   max-delay: ${RETRY_MAX_DELAY:10000}
 
+resilience4j:
+  circuitbreaker:
+    circuit-breaker-aspect-order: 1
+    instances:
+      storageService:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
 server:
   port: 8080
 
