@@ -52,8 +52,42 @@ resource-service
                                                                   └── deletes binary from mp3-staging
 ```
 
-All synchronous HTTP calls include exponential-backoff retry (3 attempts, 1 s / 2 s / 4 s).
+All synchronous HTTP calls between services include exponential-backoff retry (3 attempts, 1 s / 2 s / 4 s).
 After 3 failed processing attempts the message is routed to `resources.queue.dlq` for manual inspection.
+
+`StorageServiceClient.getAllStorages()` is additionally protected by a **Resilience4j circuit breaker** (see [Fault tolerance](#fault-tolerance)).
+
+## Fault tolerance
+
+`resource-service` calls `storage-service` to resolve S3 bucket configuration on every upload and every file promotion. If `storage-service` is unavailable, `resource-service` continues operating using hardcoded stub data (`mp3-staging` / `mp3-permanent`).
+
+The protection is layered in `StorageServiceClient.getAllStorages()`:
+
+| Layer | Mechanism | Behaviour |
+|---|---|---|
+| Timeout | `SimpleClientHttpRequestFactory` (5 s connect + 5 s read) | Prevents indefinite hang on a stopped service |
+| Retry | `@Retryable` (3 attempts, exponential backoff 1 s → 2 s → 4 s) | Retries transient errors before escalating |
+| Circuit Breaker | `@CircuitBreaker` — Resilience4j `storageService` instance | After ≥ 50 % failures in a 5-call window, opens the circuit for 10 s; subsequent calls go directly to the fallback |
+| Fallback | `getAllStoragesFallback(Throwable)` | Returns hardcoded `STAGING / mp3-staging` and `PERMANENT / mp3-permanent` stub rows |
+
+AOP order: CB aspect (order 1) is the **outer** wrapper; Retry aspect (order `MAX_VALUE-5`) is **inner**. This means one CB failure is recorded only after all retries are exhausted.
+
+Circuit breaker YAML (`application.yml`):
+```yaml
+resilience4j:
+  circuitbreaker:
+    circuit-breaker-aspect-order: 1
+    instances:
+      storageService:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 5
+        failureRateThreshold: 50        # opens after ≥3 failures in 5 calls
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+```
+
+---
 
 ## Startup order
 
@@ -408,6 +442,9 @@ curl -X POST http://localhost:8081/actuator/refresh
 | Message stuck in `resources.queue.dlq` | Processing failed after 3 retries | Inspect DLQ in RabbitMQ UI (http://localhost:15672); fix root cause; move message back to `resources.queue` |
 | File never moves to PERMANENT storage | `resource.service.queue` not receiving events | Check `resource-processor` published `ResourceProcessedEvent`; verify queue binding in RabbitMQ UI |
 | `resource-service` fails to start with storage-service lookup error | `storage-service` not healthy yet | Ensure `storage-service (healthy)` in `docker compose ps` before resource-service starts |
+| Upload returns 500 when `storage-service` is stopped | Docker image not rebuilt after code change | `docker compose up -d --build resource-service` |
+| Upload hangs for 20+ seconds when `storage-service` is unreachable | Old image without 5 s timeout | Rebuild resource-service image |
+| `GET /resources/{id}` returns 500 for unknown ID | `GlobalExceptionHandler` content-type mismatch with `Accept: audio/mpeg` | Rebuild resource-service — fixed by explicit `contentType(APPLICATION_JSON)` in handlers |
 | `GET /storages` returns 404 or empty | Storage seed data not inserted | `docker compose down -v && docker compose up -d --build` to re-run `init-scripts/storage-db/init.sql` |
 | `ddl-auto: none` — table missing | DB recreated but init SQL not run | `docker compose down -v && docker compose up -d --build` |
 | Config Server shows stale values | Git commit not made after editing config file | `git -C config-repo commit -am "..."` then call `/actuator/refresh` |
