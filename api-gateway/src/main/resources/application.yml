@@ -16,6 +16,18 @@ spring:
           uri: lb://storage-service
           predicates:
             - Path=/storages/**
+        - id: resource-service-actuator
+          uri: lb://resource-service
+          predicates:
+            - Path=/management/resource-service/**
+          filters:
+            - StripPrefix=2
+        - id: song-service-actuator
+          uri: lb://song-service
+          predicates:
+            - Path=/management/song-service/**
+          filters:
+            - StripPrefix=2
 
 server:
   port: 8080
@@ -32,7 +44,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
   endpoint:
     health:
       show-details: never
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411}/api/v2/spans

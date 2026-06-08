@@ -40,11 +40,7 @@ public class SongService {
         song.setYear(request.getYear());
 
         songRepository.save(song);
-
-        log.info("Song with ID=" + song.getId() + " created.");
-        if (log.isDebugEnabled()) {
-            log.debug("Song data: " + song.toString());
-        }
+        log.info("Song created: id={}, name={}, artist={}", song.getId(), song.getName(), song.getArtist());
         return song.getId();
     }
 
@@ -83,6 +79,7 @@ public class SongService {
                 deletedIds.add(id);
             }
         }
+        log.info("Deleted {} song(s): ids={}", deletedIds.size(), deletedIds);
         return deletedIds;
     }
 

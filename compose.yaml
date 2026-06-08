@@ -88,11 +88,110 @@ services:
       timeout: 10s
       retries: 5
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.20
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.20
+    container_name: logstash
+    ports:
+      - "5000:5000/tcp"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.18
+    platform: linux/amd64
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    platform: linux/amd64
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    depends_on:
+      - prometheus
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
   service-registry:
     build: ./service-registry
     container_name: service-registry
     ports:
       - "8761:8761"
+    environment:
+      LOGSTASH_URL: logstash:5000
+      ZIPKIN_URL: http://zipkin:9411
     deploy:
       resources:
         limits:
@@ -112,6 +211,8 @@ services:
       - ../mp3tracker-config:/config-repo
     environment:
       EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
+      LOGSTASH_URL: logstash:5000
+      ZIPKIN_URL: http://zipkin:9411
     deploy:
       resources:
         limits:
@@ -136,6 +237,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${STORAGE_DB_PASSWORD}
       EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
       CONFIG_SERVER_URL: http://config-server:8888
+      LOGSTASH_URL: logstash:5000
+      ZIPKIN_URL: http://zipkin:9411
     deploy:
       resources:
         limits:
@@ -166,6 +269,8 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
       AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
       SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST}
+      LOGSTASH_URL: logstash:5000
+      ZIPKIN_URL: http://zipkin:9411
     deploy:
       resources:
         limits:
@@ -198,6 +303,8 @@ services:
       EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
       SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST}
       CONFIG_SERVER_URL: http://config-server:8888
+      LOGSTASH_URL: logstash:5000
+      ZIPKIN_URL: http://zipkin:9411
     deploy:
       resources:
         limits:
@@ -226,6 +333,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SONG_DB_PASSWORD}
       EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
       CONFIG_SERVER_URL: http://config-server:8888
+      LOGSTASH_URL: logstash:5000
+      ZIPKIN_URL: http://zipkin:9411
     deploy:
       resources:
         limits:
@@ -251,6 +360,8 @@ services:
       - "8080:8080"
     environment:
       EUREKA_SERVER_URL: ${EUREKA_SERVER_URL}
+      LOGSTASH_URL: logstash:5000
+      ZIPKIN_URL: http://zipkin:9411
     deploy:
       resources:
         limits:
@@ -267,3 +378,4 @@ services:
 
 volumes:
   rabbitmq-data:
+  elasticsearch-data:
