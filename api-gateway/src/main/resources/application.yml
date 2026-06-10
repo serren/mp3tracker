@@ -12,6 +12,10 @@ spring:
           uri: lb://song-service
           predicates:
             - Path=/songs/**
+        - id: storage-service
+          uri: lb://storage-service
+          predicates:
+            - Path=/storages/**
 
 server:
   port: 8080

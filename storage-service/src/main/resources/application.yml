@@ -1,27 +1,21 @@
 spring:
   application:
-    name: resource-processor
+    name: storage-service
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
-  rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
-    port: 5672
-    username: guest
-    password: guest
-
-rabbitmq:
-  exchange: resources.direct
-  queue: resources.queue
-  routing-key: resources.uploaded
-  dead-letter-exchange: resources.dlx
-  dead-letter-queue: resources.queue.dlq
-  processed-routing-key: resources.processed
-
-retry:
-  max-attempts: 3
-  initial-interval: 1000
-  multiplier: 2.0
-  max-delay: 10000
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5444/storage_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 server:
   port: 8080

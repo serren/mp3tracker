@@ -4,6 +4,7 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
@@ -25,6 +26,12 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.routing-key}")
     private String routingKey;
 
+    @Value("${rabbitmq.processed-queue}")
+    private String processedQueue;
+
+    @Value("${rabbitmq.processed-routing-key}")
+    private String processedRoutingKey;
+
     @Bean
     public DirectExchange resourcesExchange() {
         return new DirectExchange(exchange, true, false);
@@ -41,6 +48,16 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue resourceProcessedQueue() {
+        return new Queue(processedQueue, true);
+    }
+
+    @Bean
+    public Binding resourceProcessedBinding(Queue resourceProcessedQueue, DirectExchange resourcesExchange) {
+        return BindingBuilder.bind(resourceProcessedQueue).to(resourcesExchange).with(processedRoutingKey);
+    }
+
+    @Bean
     public MessageConverter jsonMessageConverter() {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
         converter.setTypePrecedence(DefaultJackson2JavaTypeMapper.TypePrecedence.INFERRED);
@@ -52,5 +69,13 @@ public class RabbitMQConfig {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
         template.setMessageConverter(jsonMessageConverter());
         return template;
+    }
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(jsonMessageConverter());
+        return factory;
     }
 }

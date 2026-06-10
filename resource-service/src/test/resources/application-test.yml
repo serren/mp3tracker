@@ -29,6 +29,8 @@ rabbitmq:
   exchange: resources.direct
   queue: resources.queue
   routing-key: resources.uploaded
+  processed-queue: resource.service.queue
+  processed-routing-key: resources.processed
 
 aws:
   s3:
@@ -37,3 +39,9 @@ aws:
     region: us-east-1
     access-key: test
     secret-key: test
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      storageService:
+        enabled: false
