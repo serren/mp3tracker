@@ -27,11 +27,11 @@ public class StorageServiceClient {
     private final RestClient restClient;
     private final DiscoveryClient discoveryClient;
 
-    public StorageServiceClient(DiscoveryClient discoveryClient) {
+    public StorageServiceClient(DiscoveryClient discoveryClient, RestClient.Builder restClientBuilder) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
         factory.setReadTimeout(Duration.ofSeconds(5));
-        this.restClient = RestClient.builder().requestFactory(factory).build();
+        this.restClient = restClientBuilder.requestFactory(factory).build();
         this.discoveryClient = discoveryClient;
     }
 

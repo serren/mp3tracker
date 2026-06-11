@@ -46,12 +46,14 @@ public class ResourceService {
             String declared = contentType != null ? contentType : "unknown";
             throw new InvalidRequestException("Invalid file format: " + declared + ". Only MP3 files are allowed");
         }
+        log.info("Uploading resource: size={} bytes", data.length);
         StorageResponse stagingStorage = findStorage("STAGING");
         String s3Key = s3StorageService.upload(data, stagingStorage.getBucket());
         Resource resource = new Resource();
         resource.setS3Key(s3Key);
         resource.setStorageType("STAGING");
         Long id = resourceRepository.save(resource).getId();
+        log.info("Resource saved: id={}, s3Key={}", id, s3Key);
         eventPublisher.publish(id);
         return id;
     }
@@ -69,6 +71,7 @@ public class ResourceService {
             throw new InvalidRequestException("CSV string is empty or null");
         }
         List<Long> parsedIds = getIds(csvIds);
+        log.info("Deleting resources: ids={}", parsedIds);
 
         List<Long> deletedIds = new ArrayList<>();
         for (Long id : parsedIds) {
@@ -83,6 +86,7 @@ public class ResourceService {
             songServiceClient.deleteSongMetadata(deletedIds);
         }
 
+        log.info("Deleted {} resource(s): ids={}", deletedIds.size(), deletedIds);
         return deletedIds;
     }
 

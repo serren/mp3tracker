@@ -19,8 +19,8 @@ public class SongServiceClient {
     private final RestClient restClient;
     private final DiscoveryClient discoveryClient;
 
-    public SongServiceClient(DiscoveryClient discoveryClient) {
-        this.restClient = RestClient.builder().build();
+    public SongServiceClient(DiscoveryClient discoveryClient, RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder.build();
         this.discoveryClient = discoveryClient;
     }
 

@@ -90,6 +90,7 @@ public class RabbitMQConfig {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(jsonMessageConverter());
+        factory.setObservationEnabled(true);
 
         RepublishMessageRecoverer recoverer = new RepublishMessageRecoverer(
                 rabbitTemplate, deadLetterExchange, deadLetterQueue);

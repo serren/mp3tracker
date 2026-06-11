@@ -18,8 +18,8 @@ public class ResourceServiceClient {
     private final RestClient restClient;
     private final DiscoveryClient discoveryClient;
 
-    public ResourceServiceClient(DiscoveryClient discoveryClient) {
-        this.restClient = RestClient.builder().build();
+    public ResourceServiceClient(DiscoveryClient discoveryClient, RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder.build();
         this.discoveryClient = discoveryClient;
     }
 
