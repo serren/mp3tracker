@@ -1,5 +1,6 @@
 package com.example.storageservice.entity;
 
+import com.example.storageservice.enums.StorageType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,8 +17,9 @@ public class Storage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "storage_type", nullable = false)
-    private String storageType;
+    private StorageType storageType;
 
     @Column(name = "bucket", nullable = false)
     private String bucket;
