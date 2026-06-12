@@ -83,7 +83,7 @@ Define each microservice in `docker-compose.yml` and configure dependencies as s
     - **Note**: `depends_on` controls only the order of container startup, not waiting for services to be fully ready. Therefore, include health checks for each service to ensure they are operational before starting dependent services.
 
 
-   <img src="../images/containerization.png" width="441" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+   <img src="images/containerization.png" width="441" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 ### 3. Execution requirements
 

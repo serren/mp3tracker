@@ -26,7 +26,7 @@ Afterward, prepare for the final screening, where you may need to demonstrate th
 
     - **For Docker Compose:** Pull settings from the `.env` file, and use the `--scale song-service=2` option (or set replicas in `docker-compose.yml`) to run **two instances** of the Song Service for load balancing.
 
-<img src="../images/service_discovery.png" width="461" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="images/service_discovery.png" width="461" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 
 ### Tip
@@ -111,7 +111,7 @@ $ docker compose logs -f resource-service song-service
 - Ensure that one Resource Service instance and two Song Service instances are registered.
 
 **6. Run Postman tests**
-- Use the provided [Postman collection](../api-tests/introduction_to_microservices.postman_collection.json) and [sample MP3 file](../sample-mp3-file/mp3.zip).
+- Use the provided [Postman collection](api-tests/introduction_to_microservices.postman_collection.json) and [sample MP3 file](sample-mp3-file/mp3.zip).
 - Ensure that **all** tests pass.
 
 > **Note:** Since multiple Song Service instances run with dynamic ports, Postman cannot access them directly using a fixed port. There are two solutions:

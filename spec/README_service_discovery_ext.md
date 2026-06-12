@@ -11,7 +11,7 @@
 
 In this module, you will enhance the application’s architecture by configuring an **API Gateway** and optionally implementing a centralized **Configuration Service**. This builds upon the **Service Registry (Eureka)** already implemented in the third module of the "Introduction to Microservices" course. The goal is to ensure seamless service discovery, client-side load balancing, and centralized configuration management. Sample implementation: [Spring Cloud Tutorial - Spring Cloud Gateway + Netflix Eureka Example](https://www.javainuse.com/spring/cloud-gateway-eureka).
 
-<img src="../images/service_discovery_ext.png" width="620" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="images/service_discovery_ext.png" width="620" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 
 ## Sub-task 1: Service Registry

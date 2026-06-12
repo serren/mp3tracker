@@ -41,4 +41,4 @@ The **Resource Processor** microservice will be responsible for processing MP3 f
 
 The diagram below illustrates the overall microservice architecture:
 
-<img src="../images/microservice_architecture_overview_2.png" width="501" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="images/microservice_architecture_overview_2.png" width="501" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>

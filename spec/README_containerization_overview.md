@@ -83,7 +83,7 @@ Create a `compose.yaml` (`docker-compose.yaml`) file that includes the following
     - Define environment variables (`environment`), including database references, using an `.env` file for variable substitution.
 
 
-<img src="../images/containerization_overview.png" width="351" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
+<img src="images/containerization_overview.png" width="351" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); display: inline-block;" alt=""/>
 
 
 ### 2. Microservice configuration
@@ -136,7 +136,7 @@ Adhere to the specified requirements:
 ## Notes
 
 - Your configuration should automatically rebuild images, create, and start all containers, ensuring a complete service update without extra steps or scripts — all with a single command: `docker compose up -d --build`.
-- Use the [Postman collection](../api-tests/introduction_to_microservices.postman_collection.json) for testing the Resource Service and Song Service APIs.
+- Use the [Postman collection](api-tests/introduction_to_microservices.postman_collection.json) for testing the Resource Service and Song Service APIs.
 - After all the changes, your project structure should look similar to this:
 
 ```
@@ -196,8 +196,8 @@ Before submitting your task, please ensure that you have completed all the requi
 - [ ] Verified that services run both locally and in Docker Compose without profile switching.
 
 ✅ **Testing**
-- [ ] Used the provided [Postman collection](../api-tests/introduction_to_microservices.postman_collection.json) and [sample MP3 file](../sample-mp3-file/mp3.zip) to test APIs both locally and in Docker Compose.
-- [ ] Verified that all API requests return [correct responses](../api-tests/api-response-specification.md) both locally and in Docker Compose.
+- [ ] Used the provided [Postman collection](api-tests/introduction_to_microservices.postman_collection.json) and [sample MP3 file](sample-mp3-file/mp3.zip) to test APIs both locally and in Docker Compose.
+- [ ] Verified that all API requests return [correct responses](api-tests/api-response-specification.md) both locally and in Docker Compose.
 
 ✅ **Project structure**
 - [ ] Ensured the final project structure follows the required format.
