@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP3 Tracker — Storages</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Storage Management</h1>
+            <div style="display:flex;align-items:center;gap:12px">
+                <span id="userBadge" class="role-badge"></span>
+                <button class="btn btn-outline" id="logoutBtn">Logout</button>
+            </div>
+        </header>
+        <div id="globalError" class="alert alert-error hidden"></div>
+        <div id="globalSuccess" class="alert alert-success hidden"></div>
+        <div class="card hidden" id="addCard">
+            <h2>Add Storage</h2>
+            <div id="formError" class="alert alert-error hidden"></div>
+            <form id="addForm">
+                <div class="form-row">
+                    <div class="form-group" style="margin:0">
+                        <label for="storageType">Storage Type</label>
+                        <input list="storageTypes" id="storageType" placeholder="e.g. STAGING" required>
+                        <datalist id="storageTypes">
+                            <option value="STAGING">
+                            <option value="PERMANENT">
+                        </datalist>
+                    </div>
+                    <div class="form-group" style="margin:0">
+                        <label for="bucket">Bucket</label>
+                        <input type="text" id="bucket" placeholder="e.g. mp3-staging" required>
+                    </div>
+                    <div class="form-group" style="margin:0">
+                        <label for="path">Path</label>
+                        <input type="text" id="path" placeholder="optional">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary" id="addBtn">Add</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="card">
+            <h2>Storages</h2>
+            <div id="tableContainer"><p style="color:#888;font-size:.9rem">Loading...</p></div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+    <script>
+        const token = requireAuth();
+        if (!token) throw new Error('redirect');
+        const admin = isAdmin(token);
+        document.getElementById('userBadge').textContent = admin ? 'ADMIN' : 'USER';
+        if (admin) document.getElementById('addCard').classList.remove('hidden');
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            clearToken(); window.location.href = 'login.html';
+        });
+        function showGlobalError(msg) {
+            const el = document.getElementById('globalError');
+            el.textContent = msg; el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+        function showGlobalSuccess(msg) {
+            const el = document.getElementById('globalSuccess');
+            el.textContent = msg; el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+        async function loadStorages() {
+            const response = await apiRequest('/storages');
+            if (!response) return;
+            if (!response.ok) { showGlobalError('Failed to load storages: ' + response.status); return; }
+            renderTable(await response.json());
+        }
+        function renderTable(storages) {
+            const container = document.getElementById('tableContainer');
+            if (!storages.length) {
+                container.innerHTML = '<p style="color:#888;font-size:.9rem">No storages configured.</p>';
+                return;
+            }
+            const rows = storages.map(s => `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.storageType}</td>
+                    <td>${s.bucket}</td>
+                    <td>${s.path || ''}</td>
+                    ${admin ? `<td><button class="btn btn-danger" data-id="${s.id}">Delete</button></td>` : ''}
+                </tr>`).join('');
+            container.innerHTML = `
+                <table>
+                    <thead><tr>
+                        <th>ID</th><th>Storage Type</th><th>Bucket</th><th>Path</th>
+                        ${admin ? '<th></th>' : ''}
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+            if (admin) {
+                container.querySelectorAll('[data-id]').forEach(btn => {
+                    btn.addEventListener('click', () => deleteStorage(btn.dataset.id));
+                });
+            }
+        }
+        async function deleteStorage(id) {
+            if (!confirm(`Delete storage #${id}?`)) return;
+            const response = await apiRequest(`/storages?id=${id}`, 'DELETE');
+            if (!response) return;
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                showGlobalError(body.message || 'Delete failed: ' + response.status);
+                return;
+            }
+            showGlobalSuccess(`Storage #${id} deleted.`);
+            await loadStorages();
+        }
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formError = document.getElementById('formError');
+            const addBtn = document.getElementById('addBtn');
+            formError.classList.add('hidden');
+            addBtn.disabled = true;
+            const payload = {
+                storageType: document.getElementById('storageType').value.trim().toUpperCase(),
+                bucket: document.getElementById('bucket').value.trim(),
+                path: document.getElementById('path').value.trim()
+            };
+            try {
+                const response = await apiRequest('/storages', 'POST', payload);
+                if (!response) return;
+                if (!response.ok) {
+                    const body = await response.json().catch(() => ({}));
+                    formError.textContent = body.message || 'Failed to add: ' + response.status;
+                    formError.classList.remove('hidden');
+                    return;
+                }
+                document.getElementById('addForm').reset();
+                showGlobalSuccess('Storage added.');
+                await loadStorages();
+            } finally { addBtn.disabled = false; }
+        });
+        loadStorages();
+    </script>
+</body>
+</html>

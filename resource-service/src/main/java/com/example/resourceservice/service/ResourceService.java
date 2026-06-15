@@ -105,6 +105,10 @@ public class ResourceService {
         log.info("Promoted resource id={} from STAGING to PERMANENT", resourceId);
     }
 
+    public boolean hasResourcesWithStorageType(String storageType) {
+        return resourceRepository.existsByStorageType(storageType);
+    }
+
     private StorageResponse findStorage(String storageType) {
         return storageServiceClient.getAllStorages().stream()
                 .filter(s -> storageType.equals(s.getStorageType()))

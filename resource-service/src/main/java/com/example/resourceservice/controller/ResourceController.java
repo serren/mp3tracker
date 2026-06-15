@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/resources")
@@ -33,6 +34,12 @@ public class ResourceController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("audio/mpeg"))
                 .body(data);
+    }
+
+    @GetMapping("/exists")
+    public ResponseEntity<Map<String, Boolean>> existsByStorageType(@RequestParam String storageType) {
+        boolean exists = resourceService.hasResourcesWithStorageType(storageType);
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
 
     @DeleteMapping

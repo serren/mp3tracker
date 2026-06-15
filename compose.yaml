@@ -404,6 +404,21 @@ services:
       keycloak:
         condition: service_healthy
 
+  mp3tracker-ui:
+    image: nginx:alpine
+    container_name: mp3tracker-ui
+    user: "0:0"
+    ports:
+      - "3001:80"
+    volumes:
+      - ./ui:/usr/share/nginx/html:ro
+    depends_on:
+      - api-gateway
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+
 volumes:
   rabbitmq-data:
   elasticsearch-data:

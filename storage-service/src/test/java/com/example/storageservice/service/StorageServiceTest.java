@@ -1,5 +1,6 @@
 package com.example.storageservice.service;
 
+import com.example.storageservice.client.ResourceServiceClient;
 import com.example.storageservice.dto.StorageRequest;
 import com.example.storageservice.dto.StorageResponse;
 import com.example.storageservice.entity.Storage;
@@ -24,6 +25,9 @@ class StorageServiceTest {
 
     @Mock
     private StorageRepository storageRepository;
+
+    @Mock
+    private ResourceServiceClient resourceServiceClient;
 
     @InjectMocks
     private StorageService storageService;
@@ -63,11 +67,25 @@ class StorageServiceTest {
     void deleteStorages_existingIds_deletesAndReturnsIds() {
         Storage storage = buildStorage(1L, "STAGING", "mp3-staging", "");
         when(storageRepository.findById(1L)).thenReturn(Optional.of(storage));
+        when(resourceServiceClient.existsByStorageType("STAGING")).thenReturn(false);
 
         List<Long> result = storageService.deleteStorages("1");
 
         assertThat(result).containsExactly(1L);
         verify(storageRepository).deleteById(1L);
+    }
+
+    @Test
+    void deleteStorages_whenResourcesExist_throwsInvalidRequestException() {
+        Storage storage = buildStorage(1L, "STAGING", "mp3-staging", "");
+        when(storageRepository.findById(1L)).thenReturn(Optional.of(storage));
+        when(resourceServiceClient.existsByStorageType("STAGING")).thenReturn(true);
+
+        assertThatThrownBy(() -> storageService.deleteStorages("1"))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("STAGING");
+
+        verify(storageRepository, never()).deleteById(any());
     }
 
     @Test

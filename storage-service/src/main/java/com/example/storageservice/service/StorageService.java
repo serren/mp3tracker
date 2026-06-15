@@ -1,5 +1,6 @@
 package com.example.storageservice.service;
 
+import com.example.storageservice.client.ResourceServiceClient;
 import com.example.storageservice.dto.StorageRequest;
 import com.example.storageservice.dto.StorageResponse;
 import com.example.storageservice.entity.Storage;
@@ -19,9 +20,11 @@ public class StorageService {
     private static final Logger log = LoggerFactory.getLogger(StorageService.class);
 
     private final StorageRepository storageRepository;
+    private final ResourceServiceClient resourceServiceClient;
 
-    public StorageService(StorageRepository storageRepository) {
+    public StorageService(StorageRepository storageRepository, ResourceServiceClient resourceServiceClient) {
         this.storageRepository = storageRepository;
+        this.resourceServiceClient = resourceServiceClient;
     }
 
     @Transactional
@@ -53,6 +56,10 @@ public class StorageService {
         List<Long> deletedIds = new ArrayList<>();
         for (Long id : parsedIds) {
             storageRepository.findById(id).ifPresent(s -> {
+                if (resourceServiceClient.existsByStorageType(s.getStorageType())) {
+                    throw new InvalidRequestException(
+                            "Cannot delete storage '" + s.getStorageType() + "': resources are still stored there");
+                }
                 storageRepository.deleteById(id);
                 deletedIds.add(id);
             });
