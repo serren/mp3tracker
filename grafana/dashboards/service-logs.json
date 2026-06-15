@@ -1,0 +1,261 @@
+{
+  "title": "Service Logs",
+  "uid": "service-logs",
+  "version": 1,
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["logs", "elasticsearch"],
+  "annotations": { "list": [] },
+  "links": [],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+        "definition": "{\"find\":\"terms\",\"field\":\"service.keyword\"}",
+        "query": "{\"find\":\"terms\",\"field\":\"service.keyword\"}",
+        "refresh": 2,
+        "sort": 1,
+        "current": {},
+        "options": [],
+        "includeAll": true,
+        "allValue": "*",
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "ERROR count",
+      "type": "stat",
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "gridPos": { "h": 3, "w": 8, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto", "min_doc_count": "0", "trimEdges": "0" } }
+          ],
+          "query": "level:ERROR AND service:$service",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "WARN count",
+      "type": "stat",
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "gridPos": { "h": 3, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto", "min_doc_count": "0", "trimEdges": "0" } }
+          ],
+          "query": "level:WARN AND service:$service",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "INFO count",
+      "type": "stat",
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "gridPos": { "h": 3, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto", "min_doc_count": "0", "trimEdges": "0" } }
+          ],
+          "query": "level:INFO AND service:$service",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Log volume over time",
+      "type": "timeseries",
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 3 },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 1, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "terms", "field": "level.keyword", "settings": { "size": "10", "order": "desc", "orderBy": "1" } },
+            { "id": "3", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto", "min_doc_count": "0" } }
+          ],
+          "query": "service:$service",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Service Logs",
+      "type": "table",
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "gridPos": { "h": 22, "w": 24, "x": 0, "y": 9 },
+      "options": {
+        "footer": { "show": false },
+        "showHeader": true,
+        "cellHeight": "sm",
+        "frameIndex": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "displayMode": "auto", "filterable": true }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "level" },
+            "properties": [
+              { "id": "custom.width", "value": 80 },
+              { "id": "custom.displayMode", "value": "color-text" },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "ERROR": { "text": "ERROR", "color": "red",    "index": 0 },
+                      "WARN":  { "text": "WARN",  "color": "orange", "index": 1 },
+                      "INFO":  { "text": "INFO",  "color": "green",  "index": 2 },
+                      "DEBUG": { "text": "DEBUG", "color": "blue",   "index": 3 }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "service" },
+            "properties": [ { "id": "custom.width", "value": 160 } ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "traceId" },
+            "properties": [ { "id": "custom.width", "value": 240 } ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "spanId" },
+            "properties": [ { "id": "custom.width", "value": 160 } ]
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": ["@timestamp", "level", "service", "message", "traceId", "spanId", "logger_name"]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "@timestamp":  0,
+              "service":     1,
+              "level":       2,
+              "message":     3,
+              "traceId":     4,
+              "spanId":      5,
+              "logger_name": 6
+            },
+            "renameByName": {
+              "@timestamp":  "Time",
+              "logger_name": "Logger"
+            }
+          }
+        }
+      ],
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "logs", "settings": { "limit": "500" } }],
+          "bucketAggs": [],
+          "query": "service:$service",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Service Logs (expandable)",
+      "type": "logs",
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "gridPos": { "h": 22, "w": 24, "x": 0, "y": 31 },
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+          "metrics": [{ "id": "1", "type": "logs", "settings": { "limit": "500" } }],
+          "bucketAggs": [],
+          "query": "service:$service",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ]
+    }
+  ]
+}
