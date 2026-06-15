@@ -4,7 +4,6 @@ import com.example.resourceservice.client.SongServiceClient;
 import com.example.resourceservice.client.StorageServiceClient;
 import com.example.resourceservice.dto.StorageResponse;
 import com.example.resourceservice.entity.Resource;
-import com.example.resourceservice.enums.StorageType;
 import com.example.resourceservice.exception.InvalidRequestException;
 import com.example.resourceservice.exception.ResourceNotFoundException;
 import com.example.resourceservice.messaging.ResourceEventPublisher;
@@ -50,8 +49,8 @@ class ResourceServiceTest {
     @BeforeEach
     void setUp() {
         storages = List.of(
-                new StorageResponse(1L, StorageType.STAGING, "mp3-staging", ""),
-                new StorageResponse(2L, StorageType.PERMANENT, "mp3-permanent", "")
+                new StorageResponse(1L, "STAGING", "mp3-staging", ""),
+                new StorageResponse(2L, "PERMANENT", "mp3-permanent", "")
         );
     }
 
@@ -62,7 +61,7 @@ class ResourceServiceTest {
         byte[] data = new byte[]{1, 2, 3};
         when(storageServiceClient.getAllStorages()).thenReturn(storages);
         when(s3StorageService.upload(data, "mp3-staging")).thenReturn("s3://mp3-staging/test.mp3");
-        Resource saved = buildResource(42L, "s3://mp3-staging/test.mp3", StorageType.STAGING);
+        Resource saved = buildResource(42L, "s3://mp3-staging/test.mp3", "STAGING");
         when(resourceRepository.save(any(Resource.class))).thenReturn(saved);
 
         Long id = resourceService.uploadResource("audio/mpeg", data);
@@ -77,7 +76,7 @@ class ResourceServiceTest {
         byte[] data = new byte[]{1};
         when(storageServiceClient.getAllStorages()).thenReturn(storages);
         when(s3StorageService.upload(data, "mp3-staging")).thenReturn("s3://mp3-staging/x.mp3");
-        when(resourceRepository.save(any(Resource.class))).thenReturn(buildResource(1L, "s3://mp3-staging/x.mp3", StorageType.STAGING));
+        when(resourceRepository.save(any(Resource.class))).thenReturn(buildResource(1L, "s3://mp3-staging/x.mp3", "STAGING"));
 
         resourceService.uploadResource("audio/mpeg; charset=utf-8", data);
 
@@ -101,7 +100,7 @@ class ResourceServiceTest {
 
     @Test
     void getResource_whenExists_returnsDownloadedBytes() {
-        Resource r = buildResource(1L, "s3://mp3-staging/a.mp3", StorageType.STAGING);
+        Resource r = buildResource(1L, "s3://mp3-staging/a.mp3", "STAGING");
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r));
         when(s3StorageService.download("s3://mp3-staging/a.mp3")).thenReturn(new byte[]{9, 8, 7});
 
@@ -135,8 +134,8 @@ class ResourceServiceTest {
 
     @Test
     void deleteResources_existingIds_deletesS3AndDbAndCallsSongService() {
-        Resource r1 = buildResource(1L, "s3://mp3-staging/a.mp3", StorageType.STAGING);
-        Resource r2 = buildResource(2L, "s3://mp3-staging/b.mp3", StorageType.STAGING);
+        Resource r1 = buildResource(1L, "s3://mp3-staging/a.mp3", "STAGING");
+        Resource r2 = buildResource(2L, "s3://mp3-staging/b.mp3", "STAGING");
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(r1));
         when(resourceRepository.findById(2L)).thenReturn(Optional.of(r2));
 
@@ -187,7 +186,7 @@ class ResourceServiceTest {
 
     @Test
     void promoteResource_existingResource_copiesAndUpdatesStorageType() {
-        Resource resource = buildResource(1L, "s3://mp3-staging/test.mp3", StorageType.STAGING);
+        Resource resource = buildResource(1L, "s3://mp3-staging/test.mp3", "STAGING");
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(resource));
         when(storageServiceClient.getAllStorages()).thenReturn(storages);
         when(resourceRepository.save(any(Resource.class))).thenReturn(resource);
@@ -196,7 +195,7 @@ class ResourceServiceTest {
 
         verify(s3StorageService).copy("s3://mp3-staging/test.mp3", "mp3-permanent");
         verify(s3StorageService).delete("s3://mp3-staging/test.mp3");
-        assertThat(resource.getStorageType()).isEqualTo(StorageType.PERMANENT);
+        assertThat(resource.getStorageType()).isEqualTo("PERMANENT");
         assertThat(resource.getS3Key()).isEqualTo("s3://mp3-permanent/test.mp3");
     }
 
@@ -210,7 +209,7 @@ class ResourceServiceTest {
 
     // ---- helpers ----
 
-    private Resource buildResource(Long id, String s3Key, StorageType storageType) {
+    private Resource buildResource(Long id, String s3Key, String storageType) {
         Resource r = new Resource();
         r.setId(id);
         r.setS3Key(s3Key);

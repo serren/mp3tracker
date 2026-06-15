@@ -1,7 +1,6 @@
 package com.example.resourceservice.client;
 
 import com.example.resourceservice.dto.StorageResponse;
-import com.example.resourceservice.enums.StorageType;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,8 +56,8 @@ public class StorageServiceClient {
     List<StorageResponse> getAllStoragesFallback(Throwable t) {
         log.warn("storage-service unavailable, using stub data: {}", t.getMessage());
         return List.of(
-                new StorageResponse(1L, StorageType.STAGING,   "mp3-staging",   ""),
-                new StorageResponse(2L, StorageType.PERMANENT, "mp3-permanent", "")
+                new StorageResponse(1L, "STAGING",   "mp3-staging",   ""),
+                new StorageResponse(2L, "PERMANENT", "mp3-permanent", "")
         );
     }
 

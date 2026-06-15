@@ -1,8 +1,8 @@
 package com.example.storageservice.dto;
 
-import com.example.storageservice.enums.StorageType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,8 +12,9 @@ import lombok.Setter;
 @NoArgsConstructor
 public class StorageRequest {
 
-    @NotNull(message = "storageType is required")
-    private StorageType storageType;
+    @NotBlank(message = "storageType is required")
+    @Pattern(regexp = "^(STAGING|PERMANENT)$", message = "storageType must be STAGING or PERMANENT")
+    private String storageType;
 
     @NotBlank(message = "bucket is required")
     private String bucket;
