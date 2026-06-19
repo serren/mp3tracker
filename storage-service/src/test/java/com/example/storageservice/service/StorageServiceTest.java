@@ -1,9 +1,9 @@
 package com.example.storageservice.service;
 
+import com.example.storageservice.client.ResourceServiceClient;
 import com.example.storageservice.dto.StorageRequest;
 import com.example.storageservice.dto.StorageResponse;
 import com.example.storageservice.entity.Storage;
-import com.example.storageservice.enums.StorageType;
 import com.example.storageservice.exception.InvalidRequestException;
 import com.example.storageservice.repository.StorageRepository;
 import org.junit.jupiter.api.Test;
@@ -26,17 +26,20 @@ class StorageServiceTest {
     @Mock
     private StorageRepository storageRepository;
 
+    @Mock
+    private ResourceServiceClient resourceServiceClient;
+
     @InjectMocks
     private StorageService storageService;
 
     @Test
     void createStorage_validRequest_savesAndReturnsId() {
         StorageRequest request = new StorageRequest();
-        request.setStorageType(StorageType.STAGING);
+        request.setStorageType("STAGING");
         request.setBucket("mp3-staging");
         request.setPath("");
 
-        Storage saved = buildStorage(1L, StorageType.STAGING, "mp3-staging", "");
+        Storage saved = buildStorage(1L, "STAGING", "mp3-staging", "");
         when(storageRepository.save(any(Storage.class))).thenReturn(saved);
 
         Long id = storageService.createStorage(request);
@@ -48,27 +51,41 @@ class StorageServiceTest {
     @Test
     void getAllStorages_returnsAllMapped() {
         List<Storage> storages = List.of(
-                buildStorage(1L, StorageType.STAGING, "mp3-staging", ""),
-                buildStorage(2L, StorageType.PERMANENT, "mp3-permanent", "")
+                buildStorage(1L, "STAGING", "mp3-staging", ""),
+                buildStorage(2L, "PERMANENT", "mp3-permanent", "")
         );
         when(storageRepository.findAll()).thenReturn(storages);
 
         List<StorageResponse> result = storageService.getAllStorages();
 
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getStorageType()).isEqualTo(StorageType.STAGING);
-        assertThat(result.get(1).getStorageType()).isEqualTo(StorageType.PERMANENT);
+        assertThat(result.get(0).getStorageType()).isEqualTo("STAGING");
+        assertThat(result.get(1).getStorageType()).isEqualTo("PERMANENT");
     }
 
     @Test
     void deleteStorages_existingIds_deletesAndReturnsIds() {
-        Storage storage = buildStorage(1L, StorageType.STAGING, "mp3-staging", "");
+        Storage storage = buildStorage(1L, "STAGING", "mp3-staging", "");
         when(storageRepository.findById(1L)).thenReturn(Optional.of(storage));
+        when(resourceServiceClient.existsByStorageType("STAGING")).thenReturn(false);
 
         List<Long> result = storageService.deleteStorages("1");
 
         assertThat(result).containsExactly(1L);
         verify(storageRepository).deleteById(1L);
+    }
+
+    @Test
+    void deleteStorages_whenResourcesExist_throwsInvalidRequestException() {
+        Storage storage = buildStorage(1L, "STAGING", "mp3-staging", "");
+        when(storageRepository.findById(1L)).thenReturn(Optional.of(storage));
+        when(resourceServiceClient.existsByStorageType("STAGING")).thenReturn(true);
+
+        assertThatThrownBy(() -> storageService.deleteStorages("1"))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("STAGING");
+
+        verify(storageRepository, never()).deleteById(any());
     }
 
     @Test
@@ -94,7 +111,7 @@ class StorageServiceTest {
                 .hasMessageContaining("Invalid ID format");
     }
 
-    private Storage buildStorage(Long id, StorageType storageType, String bucket, String path) {
+    private Storage buildStorage(Long id, String storageType, String bucket, String path) {
         Storage s = new Storage();
         s.setId(id);
         s.setStorageType(storageType);

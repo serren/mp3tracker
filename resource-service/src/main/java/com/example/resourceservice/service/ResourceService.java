@@ -4,7 +4,6 @@ import com.example.resourceservice.client.SongServiceClient;
 import com.example.resourceservice.client.StorageServiceClient;
 import com.example.resourceservice.dto.StorageResponse;
 import com.example.resourceservice.entity.Resource;
-import com.example.resourceservice.enums.StorageType;
 import com.example.resourceservice.exception.InvalidRequestException;
 import com.example.resourceservice.exception.ResourceNotFoundException;
 import com.example.resourceservice.messaging.ResourceEventPublisher;
@@ -48,11 +47,11 @@ public class ResourceService {
             throw new InvalidRequestException("Invalid file format: " + declared + ". Only MP3 files are allowed");
         }
         log.info("Uploading resource: size={} bytes", data.length);
-        StorageResponse stagingStorage = findStorage(StorageType.STAGING);
+        StorageResponse stagingStorage = findStorage("STAGING");
         String s3Key = s3StorageService.upload(data, stagingStorage.getBucket());
         Resource resource = new Resource();
         resource.setS3Key(s3Key);
-        resource.setStorageType(StorageType.STAGING);
+        resource.setStorageType("STAGING");
         Long id = resourceRepository.save(resource).getId();
         log.info("Resource saved: id={}, s3Key={}", id, s3Key);
         eventPublisher.publish(id);
@@ -95,20 +94,24 @@ public class ResourceService {
     public void promoteResource(Long resourceId) {
         Resource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException(resourceId));
-        StorageResponse permanentStorage = findStorage(StorageType.PERMANENT);
+        StorageResponse permanentStorage = findStorage("PERMANENT");
         String oldKey = resource.getS3Key();
         s3StorageService.copy(oldKey, permanentStorage.getBucket());
         String keyFilename = oldKey.substring(oldKey.lastIndexOf('/') + 1);
         resource.setS3Key("s3://" + permanentStorage.getBucket() + "/" + keyFilename);
-        resource.setStorageType(StorageType.PERMANENT);
+        resource.setStorageType("PERMANENT");
         resourceRepository.save(resource);
         s3StorageService.delete(oldKey);
         log.info("Promoted resource id={} from STAGING to PERMANENT", resourceId);
     }
 
-    private StorageResponse findStorage(StorageType storageType) {
+    public boolean hasResourcesWithStorageType(String storageType) {
+        return resourceRepository.existsByStorageType(storageType);
+    }
+
+    private StorageResponse findStorage(String storageType) {
         return storageServiceClient.getAllStorages().stream()
-                .filter(s -> storageType == s.getStorageType())
+                .filter(s -> storageType.equals(s.getStorageType()))
                 .findFirst()
                 .orElseThrow(() -> new InvalidRequestException(storageType + " storage not configured"));
     }

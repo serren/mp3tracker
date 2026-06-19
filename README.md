@@ -6,27 +6,74 @@ Microservice application for uploading, storing, and retrieving MP3 files along 
 
 | Service | Port | Responsibility |
 |---|---|---|
-| **api-gateway** | **8080** | **Single entry point — routes all external traffic via Eureka** |
+| **api-gateway** | **8080** | **Single entry point — JWT validation, routes all external traffic via Eureka** |
 | resource-service | 8081 | MP3 upload/download/delete, S3 storage (STAGING→PERMANENT), RabbitMQ publisher |
 | resource-processor | 8084 | Async MP3 metadata extraction via Apache Tika |
 | song-service | 8082–8083 | Song metadata CRUD (name, artist, album, duration, year) — 2 replicas |
 | storage-service | 8085 | CRUD for S3 storage configurations (STAGING / PERMANENT buckets) |
 | service-registry | 8761 | Eureka service discovery |
 | **config-server** | **8888** | **Centralized configuration (Spring Cloud Config, git-backed)** |
+| **keycloak** | **8180** | **OAuth2/OIDC authorization server — issues and validates JWT tokens** |
 | rabbitmq | 5672 / 15672 | Message broker (AMQP + Management UI) |
 | localstack | 4566 | AWS S3 emulator |
 | resource-db | 5442 | PostgreSQL — resource records |
 | song-db | 5443 | PostgreSQL — song metadata |
 | storage-db | 5444 | PostgreSQL — storage configurations |
 
+## Security
+
+All API requests must include a valid JWT token issued by Keycloak. The API Gateway is the single enforcement point — downstream services trust internal traffic.
+
+### Roles
+
+| Role | Allowed methods |
+|------|----------------|
+| `ADMIN` | GET, POST, DELETE |
+| `USER` | GET only |
+
+POST and DELETE on `/storages/**` are restricted to `ADMIN`. All other routes require any authenticated user.
+`/actuator/**` is public (health checks, Prometheus scraping).
+
+### Getting a token
+
+**Admin token:**
+```bash
+curl -s -X POST http://localhost:8180/realms/mp3tracker/protocol/openid-connect/token \
+  -d "client_id=mp3tracker-postman&grant_type=password&username=admin&password=admin" \
+  | jq -r .access_token
+```
+
+**User token:**
+```bash
+curl -s -X POST http://localhost:8180/realms/mp3tracker/protocol/openid-connect/token \
+  -d "client_id=mp3tracker-postman&grant_type=password&username=user&password=user" \
+  | jq -r .access_token
+```
+
+Use the returned token as `Authorization: Bearer <token>` on every API request.
+
+### Access matrix
+
+| Request | No token | USER token | ADMIN token |
+|---------|----------|------------|-------------|
+| `GET /resources/**` | 401 | 200 | 200 |
+| `GET /songs/**` | 401 | 200 | 200 |
+| `GET /storages` | 401 | 200 | 200 |
+| `POST /storages` | 401 | 403 | 201 |
+| `DELETE /storages` | 401 | 403 | 200 |
+| `GET /actuator/health` | 200 | 200 | 200 |
+
+---
+
 ## Processing flow
 
 ```
-Client
+Client  (with Bearer token)
   │
   │  POST /resources  (audio/mpeg)
   ▼
 api-gateway (:8080)
+  ├── validates JWT via Keycloak JWK endpoint
   │  routes /resources/** → lb://resource-service
   ▼
 resource-service
@@ -99,11 +146,12 @@ RabbitMQ        ──┤
 LocalStack      ──┤──► service-registry ──► config-server ──► resource-service
                                        │                  ├──► song-service
                                        │                  ├──► storage-service
-                                       └──────────────────────► api-gateway
-                                       └──────────────────────► resource-processor
+                                       │                  └──► resource-processor
+Keycloak ─────────────────────────────────────────────────────► api-gateway ◄── config-server
 ```
 
 `resource-service` additionally waits for `storage-service: condition: service_healthy`.
+`api-gateway` additionally waits for `keycloak: condition: service_healthy` — it fetches the JWK set at startup.
 
 ## Prerequisites
 
@@ -139,6 +187,7 @@ docker compose logs -f resource-service
 docker compose logs -f resource-processor
 docker compose logs -f song-service
 docker compose logs -f api-gateway
+docker compose logs -f keycloak
 docker compose logs -f config-server
 ```
 
@@ -149,11 +198,11 @@ docker compose logs -f config-server
 docker compose ps
 ```
 
-All services should show `(healthy)`.
+All services should show `(healthy)`. Keycloak takes up to 3 minutes on first startup.
 
 **Health endpoints:**
 ```bash
-curl http://localhost:8080/actuator/health   # api-gateway
+curl http://localhost:8080/actuator/health   # api-gateway (no token required)
 curl http://localhost:8081/actuator/health   # resource-service
 curl http://localhost:8082/actuator/health   # song-service
 curl http://localhost:8084/actuator/health   # resource-processor
@@ -174,7 +223,7 @@ Open http://localhost:8761 in a browser — `RESOURCE-SERVICE`, `SONG-SERVICE`, 
 **Config Server — inspect loaded configuration:**
 ```bash
 curl http://localhost:8888/resource-service/default
-curl http://localhost:8888/song-service/default
+curl http://localhost:8888/api-gateway/default
 ```
 
 **RabbitMQ Management UI:**
@@ -183,6 +232,10 @@ Open http://localhost:15672 in a browser (login: `guest` / `guest`).
 
 - **Exchanges** — `resources.direct` (main exchange for all resource events), `resources.dlx` (dead-letter)
 - **Queues** — `resources.queue` (processor consumes), `resource.service.queue` (resource-service consumes processed events), `resources.queue.dlq` (dead-letter)
+
+**Keycloak Admin Console:**
+
+Open http://localhost:8180 in a browser (login from `.env`: `KC_ADMIN_USERNAME` / `KC_ADMIN_PASSWORD`). Realm `mp3tracker` contains roles `ADMIN` / `USER` and test users `admin` / `user`.
 
 ## Inspecting LocalStack S3 data
 
@@ -207,9 +260,11 @@ After a successful upload the MP3 appears in `mp3-staging`. After resource-proce
 
 Run all services on the host JVM while keeping only the infrastructure (DBs, RabbitMQ, LocalStack) in Docker. Each service has an `application-local.yml` with the correct port and settings for this mode.
 
+In local mode the api-gateway uses `http://localhost:8180` as the default Keycloak JWK URI (set in `api-gateway.yml` in the config repo). Start Keycloak in Docker or override `KEYCLOAK_JWK_SET_URI`.
+
 **Step 1 — start infra:**
 ```bash
-docker compose up -d resource-db song-db storage-db rabbitmq localstack
+docker compose up -d resource-db song-db storage-db rabbitmq localstack keycloak
 ```
 
 **Step 2 — set the config-repo path** (forward slashes required on Windows):
@@ -240,8 +295,15 @@ curl http://localhost:8888/resource-service/default
 
 ## REST API examples
 
-All examples use the **API Gateway** on port **8080** as the single entry point.
-Direct service ports (8081, 8082) remain accessible but are intended for internal/debug use only.
+All examples use the **API Gateway** on port **8080** as the single entry point and require a Bearer token.
+Direct service ports (8081, 8082, 8085) remain accessible but bypass security and are intended for internal/debug use only.
+
+**Get a token first** (see [Getting a token](#getting-a-token) above), then export it:
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8180/realms/mp3tracker/protocol/openid-connect/token \
+  -d "client_id=mp3tracker-postman&grant_type=password&username=admin&password=admin" \
+  | jq -r .access_token)
+```
 
 ### resource-service (via gateway)
 
@@ -249,6 +311,7 @@ Direct service ports (8081, 8082) remain accessible but are intended for interna
 ```bash
 curl -X POST http://localhost:8080/resources \
   -H "Content-Type: audio/mpeg" \
+  -H "Authorization: Bearer $TOKEN" \
   --data-binary @your-file.mp3
 ```
 Response:
@@ -260,12 +323,15 @@ After a successful upload, resource-processor asynchronously extracts the metada
 
 **Download an MP3 file by ID:**
 ```bash
-curl http://localhost:8080/resources/1 --output downloaded.mp3
+curl http://localhost:8080/resources/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  --output downloaded.mp3
 ```
 
 **Delete resources by ID (comma-separated):**
 ```bash
-curl -X DELETE "http://localhost:8080/resources?id=1,2,3"
+curl -X DELETE "http://localhost:8080/resources?id=1,2,3" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 Response:
 ```json
@@ -274,13 +340,14 @@ Response:
 
 ---
 
-### storage-service (direct, port 8085)
+### storage-service (via gateway)
 
-Storage-service is not routed through the API Gateway — it is an internal service consumed by resource-service via Eureka.
+Storage-service is accessible through the API Gateway at `:8080/storages` (requires auth) and directly at `:8085/storages` (no auth, internal use only).
 
 **List all storage configurations:**
 ```bash
-curl http://localhost:8085/storages
+curl http://localhost:8080/storages \
+  -H "Authorization: Bearer $TOKEN"
 ```
 Response:
 ```json
@@ -290,10 +357,11 @@ Response:
 ]
 ```
 
-**Create a storage configuration:**
+**Create a storage configuration (ADMIN only):**
 ```bash
-curl -X POST http://localhost:8085/storages \
+curl -X POST http://localhost:8080/storages \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"storageType": "STAGING", "bucket": "mp3-staging", "path": ""}'
 ```
 Response:
@@ -301,9 +369,10 @@ Response:
 {"id": 1}
 ```
 
-**Delete storage configurations by ID:**
+**Delete storage configurations by ID (ADMIN only):**
 ```bash
-curl -X DELETE "http://localhost:8085/storages?id=1,2"
+curl -X DELETE "http://localhost:8080/storages?id=1,2" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 Response:
 ```json
@@ -316,7 +385,8 @@ Response:
 
 **Get song metadata by ID:**
 ```bash
-curl http://localhost:8080/songs/1
+curl http://localhost:8080/songs/1 \
+  -H "Authorization: Bearer $TOKEN"
 ```
 Response:
 ```json
@@ -330,27 +400,10 @@ Response:
 }
 ```
 
-**Create song metadata manually:**
-```bash
-curl -X POST http://localhost:8080/songs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 1,
-    "name": "Bohemian Rhapsody",
-    "artist": "Queen",
-    "album": "A Night at the Opera",
-    "duration": "05:55",
-    "year": "1975"
-  }'
-```
-Response:
-```json
-{"id": 1}
-```
-
 **Delete song metadata by ID (comma-separated):**
 ```bash
-curl -X DELETE "http://localhost:8080/songs?id=1,2"
+curl -X DELETE "http://localhost:8080/songs?id=1,2" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 Response:
 ```json
@@ -361,7 +414,17 @@ Response:
 
 ### Error responses
 
-All services return a consistent error shape:
+**401 Unauthorized** — missing or expired token:
+```json
+{"status": 401, "error": "Unauthorized", "message": "Authentication required"}
+```
+
+**403 Forbidden** — valid token but insufficient role (e.g. USER attempting POST/DELETE):
+```json
+{"status": 403, "error": "Forbidden", "message": "Access denied"}
+```
+
+All services return a consistent error shape for application errors:
 ```json
 {
   "errorMessage": "Song metadata for ID=99 not found",
@@ -369,29 +432,7 @@ All services return a consistent error shape:
 }
 ```
 
-The API Gateway returns JSON errors for undefined routes or unreachable services:
-```json
-{
-  "status": 404,
-  "error": "Not Found",
-  "message": "No route found for ..."
-}
-```
-
 Validation errors (song-service `POST /songs`) include a `details` field with per-field messages:
-```bash
-curl -X POST http://localhost:8080/songs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": 102,
-    "name": "We are the champions",
-    "artist": "Queen",
-    "album": "News of the world",
-    "duration": "02:77",
-    "year": "01977"
-  }'
-```
-Response `400`:
 ```json
 {
   "errorMessage": "Validation error",
@@ -407,23 +448,23 @@ Response `400`:
 
 ## Dynamic configuration refresh
 
-Configuration for `resource-service` and `song-service` is served from `config-repo/` via Config Server.
+Configuration for `resource-service`, `song-service`, and `api-gateway` is served from `config-repo/` via Config Server.
 To change a property at runtime without restarting:
 
 ```bash
-# 1. Edit the config file
-#    e.g. change logging.level.com.example from INFO to DEBUG
-#    in config-repo/resource-service.yml
-
+# 1. Edit the config file in config-repo/
 # 2. Commit the change
-git -C config-repo commit -am "enable debug logging"
+git -C config-repo commit -am "change description"
 
 # 3. Trigger refresh on the target service
-curl -X POST http://localhost:8081/actuator/refresh
+curl -X POST http://localhost:8081/actuator/refresh   # resource-service
+curl -X POST http://localhost:8080/actuator/refresh   # api-gateway (no token needed for actuator)
 
 # Response — list of changed properties:
 # ["logging.level.com.example"]
 ```
+
+Note: `jwk-set-uri` is not a `@RefreshScope` bean — changing it requires an api-gateway restart.
 
 ---
 
@@ -431,26 +472,27 @@ curl -X POST http://localhost:8081/actuator/refresh
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Container stuck in `health: starting` | Service slow to boot (JVM warmup + Eureka registration) | Wait up to 2 minutes; check `docker compose logs -f <service>` |
+| Container stuck in `health: starting` | Service slow to boot (JVM warmup + Eureka registration) | Wait up to 2–3 minutes; check `docker compose logs -f <service>` |
 | `resource-service` / `song-service` won't start | `config-server` not healthy yet | `docker compose ps` — wait for `config-server (healthy)` |
+| `api-gateway` won't start | `keycloak` not healthy yet | Wait for Keycloak (~3 min on first start); check `docker compose logs -f keycloak` |
 | `Connection refused` on DB | DB container not healthy | `docker compose ps` — wait for DB healthcheck to pass |
 | `Connection refused` to `song-service` | Not yet registered in Eureka | Wait ~30 s for registration; `@Retryable` retries automatically |
 | `Invalid file format` on upload | Missing `Content-Type` header | Set `-H "Content-Type: audio/mpeg"` |
+| All API requests return 401 | Missing or expired Bearer token | Get a new token from Keycloak (see [Getting a token](#getting-a-token)) |
+| Token request returns `Account is not fully set up` | Keycloak started with stale realm data | `docker compose stop keycloak && docker compose rm -f keycloak && docker compose up -d keycloak` |
+| POST/DELETE returns 403 with valid token | User has `USER` role, not `ADMIN` | Use the `admin` / `admin` credentials to get an ADMIN token |
 | Upload succeeds but `GET /songs/{id}` returns 404 | `resource-processor` not running or still processing | `docker compose logs -f resource-processor`; check RabbitMQ queue |
 | API Gateway returns 503 | Target service not registered in Eureka yet | Wait for Eureka registration; retry the request |
-| API Gateway returns HTML error instead of JSON | Route not matched | Ensure path starts with `/resources/` or `/songs/` |
+| API Gateway returns HTML error instead of JSON | Route not matched | Ensure path starts with `/resources/`, `/songs/`, or `/storages/` |
 | Message stuck in `resources.queue.dlq` | Processing failed after 3 retries | Inspect DLQ in RabbitMQ UI (http://localhost:15672); fix root cause; move message back to `resources.queue` |
 | File never moves to PERMANENT storage | `resource.service.queue` not receiving events | Check `resource-processor` published `ResourceProcessedEvent`; verify queue binding in RabbitMQ UI |
-| `resource-service` fails to start with storage-service lookup error | `storage-service` not healthy yet | Ensure `storage-service (healthy)` in `docker compose ps` before resource-service starts |
 | Upload returns 500 when `storage-service` is stopped | Docker image not rebuilt after code change | `docker compose up -d --build resource-service` |
 | Upload hangs for 20+ seconds when `storage-service` is unreachable | Old image without 5 s timeout | Rebuild resource-service image |
-| `GET /resources/{id}` returns 500 for unknown ID | `GlobalExceptionHandler` content-type mismatch with `Accept: audio/mpeg` | Rebuild resource-service — fixed by explicit `contentType(APPLICATION_JSON)` in handlers |
 | `GET /storages` returns 404 or empty | Storage seed data not inserted | `docker compose down -v && docker compose up -d --build` to re-run `init-scripts/storage-db/init.sql` |
 | `ddl-auto: none` — table missing | DB recreated but init SQL not run | `docker compose down -v && docker compose up -d --build` |
 | Config Server shows stale values | Git commit not made after editing config file | `git -C config-repo commit -am "..."` then call `/actuator/refresh` |
 | config-server `propertySources: []` (local run) | `CONFIG_REPO_PATH` not set or uses backslashes | `export CONFIG_REPO_PATH=D:/Projects/mp3tracker-config` (forward slashes) |
 | `Could not resolve placeholder 'rabbitmq.exchange'` (local run) | config-server not serving properties | Check `curl http://localhost:8888/resource-service/default`; fix `CONFIG_REPO_PATH` |
-| config-server fails: "Invalid config server configuration" | `local` profile replaced `native` profile | Ensure `spring.profiles.group.local: "native"` in `config-server/application.yml` |
 | `No instances of X registered in Eureka` | Service not yet registered | Wait; `@Retryable` handles this automatically |
-| Port conflict on 8080/8085 | Another process uses API Gateway or storage-service port | Stop conflicting process or change port in `compose.yaml` |
+| Port conflict on 8080/8180 | Another process uses API Gateway or Keycloak port | Stop conflicting process or change port in `compose.yaml` |
 | Build fails: Java version | Wrong JDK active | Ensure JDK 21: `java -version` |

@@ -1,6 +1,5 @@
 package com.example.resourceservice.entity;
 
-import com.example.resourceservice.enums.StorageType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,7 +19,6 @@ public class Resource {
     @Column(name = "s3_key", nullable = false)
     private String s3Key;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "storage_type", nullable = false)
-    private StorageType storageType;
+    private String storageType;
 }
