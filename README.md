@@ -19,6 +19,13 @@ Microservice application for uploading, storing, and retrieving MP3 files along 
 | resource-db | 5442 | PostgreSQL — resource records |
 | song-db | 5443 | PostgreSQL — song metadata |
 | storage-db | 5444 | PostgreSQL — storage configurations |
+| **prometheus** | **9090** | **Metrics collector — scrapes `/actuator/prometheus` on all 7 services** |
+| **grafana** | **3000** | **Metrics dashboards (JVM Metrics, API Gateway Performance, Service Logs)** |
+| **zipkin** | **9411** | **Distributed tracing UI — receives spans from all services** |
+| elasticsearch | 9200 | Log storage (ELK stack) |
+| logstash | 5000 | Log ingestion (TCP) — receives structured logs from all services |
+| kibana | 5601 | Log search UI |
+| mp3tracker-ui | 3001 | Browser UI (Nginx) |
 
 ## Security
 
@@ -229,6 +236,55 @@ curl http://localhost:8888/api-gateway/default
 **RabbitMQ Management UI:**
 
 Open http://localhost:15672 in a browser (login: `guest` / `guest`).
+
+---
+
+## Observability
+
+### Prometheus — http://localhost:9090
+
+Scrapes metrics every 15 s from all seven application services via `/actuator/prometheus`:
+
+| Scrape target | Internal address |
+|---|---|
+| resource-service | `resource-service:8080` |
+| song-service | `song-service:8080` |
+| storage-service | `storage-service:8080` |
+| resource-processor | `resource-processor:8080` |
+| api-gateway | `api-gateway:8080` |
+| service-registry | `service-registry:8761` |
+| config-server | `config-server:8888` |
+
+Use the Prometheus expression browser to query raw metrics (e.g. `http_server_requests_seconds_count`, `jvm_memory_used_bytes`).
+
+### Grafana — http://localhost:3000
+
+Login: `admin` / value of `GF_ADMIN_PASSWORD` in `.env` (default: `admin`).
+
+Three dashboards are provisioned automatically:
+
+| Dashboard | Datasource | What it shows |
+|---|---|---|
+| **JVM Metrics** | Prometheus | Heap / non-heap memory, GC pause time, thread count — one panel per service |
+| **API Gateway Performance** | Prometheus | Request rate (req/s) and 5xx error rate through the gateway |
+| **Service Logs** | Elasticsearch | Structured log stream from all services (level, logger, message, traceId) |
+
+Datasources are provisioned from `grafana/provisioning/datasources/` (Prometheus at `http://prometheus:9090`, Elasticsearch at the URL from `ELASTICSEARCH_HOSTS`).
+
+### Zipkin — http://localhost:9411
+
+Receives distributed traces from **all seven application services** via `ZIPKIN_URL` (set in `compose.yaml` for each service). Traces are sent automatically through Micrometer Tracing / Spring Cloud Sleuth.
+
+Use the Zipkin UI to:
+- Search traces by service, trace ID, or time range
+- Inspect the full span tree for a request across multiple services (e.g. upload → resource-processor → song-service)
+- Identify latency hotspots between service hops
+
+Services that send traces: `api-gateway`, `resource-service`, `resource-processor`, `song-service`, `storage-service`, `service-registry`, `config-server`.
+
+### ELK Stack
+
+Structured JSON logs from all services are shipped via Logstash TCP appender (`LOGSTASH_URL`) to Elasticsearch and surfaced in Kibana (http://localhost:5601) and the **Service Logs** Grafana dashboard.
 
 - **Exchanges** — `resources.direct` (main exchange for all resource events), `resources.dlx` (dead-letter)
 - **Queues** — `resources.queue` (processor consumes), `resource.service.queue` (resource-service consumes processed events), `resources.queue.dlq` (dead-letter)
