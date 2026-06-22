@@ -57,10 +57,12 @@ public class StorageService {
         for (Long id : parsedIds) {
             storageRepository.findById(id).ifPresent(s -> {
                 if (resourceServiceClient.existsByStorageType(s.getStorageType())) {
+                    log.warn("Rejected delete of storage id={} type={}: resources still present", id, s.getStorageType());
                     throw new InvalidRequestException(
                             "Cannot delete storage '" + s.getStorageType() + "': resources are still stored there");
                 }
                 storageRepository.deleteById(id);
+                log.info("Deleted storage id={} type={}", id, s.getStorageType());
                 deletedIds.add(id);
             });
         }

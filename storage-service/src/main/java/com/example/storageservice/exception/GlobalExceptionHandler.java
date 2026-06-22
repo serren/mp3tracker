@@ -1,6 +1,8 @@
 package com.example.storageservice.exception;
 
 import com.example.storageservice.dto.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -15,6 +17,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(StorageNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(StorageNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -23,6 +27,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(InvalidRequestException ex) {
+        log.warn("Bad request: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ex.getMessage(), "400"));
     }
